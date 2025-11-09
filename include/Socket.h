@@ -9,6 +9,11 @@
 #endif // _WINDOWS_
 #else
 #include <sys/socket.h>
+#include <asm-generic/poll.h>
+#include <sys/endian.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <netinet/in.h>
 #endif // _MSC_BUILD
 
 #include <string>
@@ -57,9 +62,9 @@ enum class Protocol : int {
 /// IPAddress
 /// </summary>
 
-template<IPVersion type>
+template<IPVersion _type>
 struct IPAddressBase {
-	constexpr static int VersionValue = static_cast<int>(type);
+	constexpr static int VersionValue = static_cast<int>(_type);
 	constexpr static bool IsIPv4 = VersionValue == (int)IPVersion::IPv4;
 	constexpr static bool IsIPv6 = VersionValue == (int)IPVersion::IPv6;
 
@@ -128,7 +133,7 @@ struct IPAddressBase {
 	}
 	std::string Address() const {
 		std::string ret(AddressStringSize(), '\0');
-		if (inet_ntop(VersionValue, &((&address)->*AddressPtr()), ret.data(), INET_ADDRSTRLEN) == nullptr) {
+		if (inet_ntop(VersionValue, &((&address)->*AddressPtr()), ret.data(), AddressStringSize()) == nullptr) {
 			dbg_print();
 		}
 		return ret;
@@ -163,10 +168,10 @@ struct IPAddressBase {
 			IPAddressBase()));
 	}
 
-	static std::optional<IPAddressBase> SolveHostName(const std::string& hostname, Protocol type = Protocol::TCP) {
+	static std::optional<IPAddressBase> SolveHostName(const std::string& hostname, Protocol protocol = Protocol::TCP) {
 		struct addrinfo hints = {};
 		hints.ai_family = VersionValue;
-		hints.ai_socktype = static_cast<int>(type);
+		hints.ai_socktype = static_cast<int>(protocol);
 		struct addrinfo* res;
 		if (getaddrinfo(hostname.c_str(), nullptr, &hints, &res) != 0) {
 			dbg_print();
