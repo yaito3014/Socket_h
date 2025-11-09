@@ -31,12 +31,13 @@
 /// Debug Utility
 /// </summary>
 
-#ifdef _DEBUG
 #ifdef _MSC_BUILD
 #define _last_error WSAGetLastError()
 #else
 #define _last_error errno
 #endif
+
+#ifdef _DEBUG
 #define dbg_print std::cerr << "error in " << __func__ << ": " << _last_error << std::endl
 #else 
 #define dbg_print
