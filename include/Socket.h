@@ -425,7 +425,7 @@ public:
 
 		if (ret < 0) {
 			dbg_print();
-			int err = GetLastError();
+			int err = _last_error();
 #ifdef _MSC_BUILD
 			if (err == WSAEINTR)
 #else
@@ -448,7 +448,7 @@ public:
 				return true;
 			}
 			if (r < 0) {
-				int err = GetLastError();
+				int err = _last_error();
 #ifdef _MSC_BUILD
 				if (err == WSAECONNRESET)
 #else
