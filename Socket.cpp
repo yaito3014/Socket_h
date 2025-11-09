@@ -6,7 +6,6 @@
 #include <chrono>
 
 #include "include/Socket.h"
-#include "include/AES128.h"
 #include "include/MultiWordInt.h"
 #include "include/ModInt.h"
 
