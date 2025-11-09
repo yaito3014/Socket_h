@@ -33,13 +33,13 @@
 
 #ifdef _DEBUG
 #ifdef _MSC_BUILD
-#define _last_error() WSAGetLastError()
+#define _last_error WSAGetLastError()
 #else
-#define _last_error() errno
+#define _last_error errno
 #endif
-#define dbg_print() std::cerr << "error in " << __func__ << ": " << _last_error() << std::endl
+#define dbg_print std::cerr << "error in " << __func__ << ": " << _last_error << std::endl
 #else 
-#define dbg_print()
+#define dbg_print
 #endif
 
 
@@ -127,14 +127,14 @@ struct IPAddressBase {
 	IPAddressBase& Address(const std::string& addr) {
 		int ret = inet_pton(VersionValue, addr.c_str(), &((&address)->*AddressPtr()));
 		if (ret == 0 || ret == -1) {
-			dbg_print();
+			dbg_print;
 		}
 		return *this;
 	}
 	std::string Address() const {
 		std::string ret(AddressStringSize(), '\0');
 		if (inet_ntop(VersionValue, &((&address)->*AddressPtr()), ret.data(), AddressStringSize()) == nullptr) {
-			dbg_print();
+			dbg_print;
 		}
 		return ret;
 	}
@@ -174,7 +174,7 @@ struct IPAddressBase {
 		hints.ai_socktype = static_cast<int>(protocol);
 		struct addrinfo* res;
 		if (getaddrinfo(hostname.c_str(), nullptr, &hints, &res) != 0) {
-			dbg_print();
+			dbg_print;
 			return std::nullopt;
 		}
 		IPAddressBase ret;
@@ -198,7 +198,7 @@ class WinSock {
 	WinSock() {
 		int iResult = WSAStartup(MAKEWORD(2, 2), &data);
 		if (iResult != 0) {
-			dbg_print();
+			dbg_print;
 			return;
 		}
 		is_init = true;
@@ -262,7 +262,7 @@ public:
 #endif // _MSC_BUILD
 		sock = socket(ipT::VersionValue, static_cast<int>(_protocol), 0);
 		if (!IsValid()) {
-			dbg_print();
+			dbg_print;
 		}
 		pfd.fd = sock;
 		pfd.events = POLLIN;
@@ -391,7 +391,7 @@ public:
 
 	bool Connect(typename sockbase::IPType hostaddr, int timeout = 0) {
 		if (connect(sockbase::sock, hostaddr, sizeof(typename sockbase::IPType)) < 0) {
-			dbg_print();
+			dbg_print;
 			return false;
 		}
 		return true;
@@ -400,7 +400,7 @@ public:
 #ifdef _MSC_BUILD
 		u_long bytes = 0;
 		if (ioctlsocket(sockbase::sock, FIONREAD, &bytes) == SOCKET_ERROR) {
-			dbg_print();
+			dbg_print;
 			return -1;
 		}
 		return static_cast<int>(bytes);
@@ -429,8 +429,8 @@ public:
 		}
 
 		if (ret < 0) {
-			dbg_print();
-			int err = _last_error();
+			dbg_print;
+			int err = _last_error;
 #ifdef _MSC_BUILD
 			if (err == WSAEINTR)
 #else
@@ -453,7 +453,7 @@ public:
 				return true;
 			}
 			if (r < 0) {
-				int err = _last_error();
+				int err = _last_error;
 #ifdef _MSC_BUILD
 				if (err == WSAECONNRESET)
 #else
@@ -676,7 +676,7 @@ public:
 
 	bool Bind(typename sockbase::IPType addr) {
 		if (bind(sockbase::sock, addr, sizeof(typename sockbase::IPType)) < 0) {
-			dbg_print();
+			dbg_print;
 			return false;
 		}
 		int opt = 1;
@@ -686,7 +686,7 @@ public:
 	bool Listen(uint16_t port, int backlog = 128) {
 		this->Bind(typename sockbase::IPType(port));
 		if (listen(sockbase::sock, backlog) != 0) {
-			dbg_print();
+			dbg_print;
 			return false;
 		}
 		return true;
@@ -703,7 +703,7 @@ public:
 
 		TCPSocket client = accept(sockbase::sock, nullptr, nullptr);
 		if (!client.IsValid()) {
-			dbg_print();
+			dbg_print;
 			return std::nullopt;
 		}
 		client.pfd.fd = client.sock;
@@ -729,6 +729,7 @@ using TCPServerV6 = basic_TCPServer<IPv6Address>;
 
 
 #undef dbg_print
+#undef _last_error
 
 // TODO:
 // 	Datagram (UDP) Protocol implement
