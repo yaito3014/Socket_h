@@ -224,11 +224,8 @@ public:
 /// Socket Base
 /// </summary>
 
-struct SocketUtil {
+struct SocketTraits {
 	using bytearray = std::vector<uint8_t>;
-
-	template<class T>
-	using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
 	template<class T>
 	using stdlayout = std::enable_if_t<std::is_standard_layout<T>::value, T>;
@@ -236,7 +233,7 @@ struct SocketUtil {
 };
 
 template<class ipT, Protocol _protocol>
-class SocketBase : public SocketUtil {
+class SocketBase {
 public:
 	using IPType = ipT;
 	
@@ -355,7 +352,6 @@ protected:
 	constexpr static int int_size = sizeof(int);
 };
 
-
 /// <summary>
 /// TCP Protocol Socket
 /// </summary>
@@ -370,13 +366,10 @@ protected:
 
 public:
 
-	using bytearray = typename sockbase::bytearray;
+	using bytearray = typename SocketTraits::bytearray;
 
 	template<class T>
-	using remove_cvref_t = SocketUtil::remove_cvref_t<T>;
-
-	template<class T>
-	using stdlayout = SocketUtil::stdlayout<T>;
+	using stdlayout = typename SocketTraits::stdlayout<T>;
 	
 	basic_TCPSocket() : sockbase() {}
 	basic_TCPSocket(typename sockbase::IPType addr) : basic_TCPSocket() {
