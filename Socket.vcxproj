@@ -147,6 +147,10 @@
     <ClInclude Include="include\Packet.h" />
     <ClInclude Include="include\Socket.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="docs\Overview.md" />
+    <None Include="docs\template.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -100,9 +100,9 @@ struct Packet {
 	struct is_cross_convertable<T, std::void_t<cross_convertable_d<T>>> : std::true_type {};
 
 	template<class T, class dummyT = std::nullptr_t>
-	using pod_d = std::enable_if_t<std::is_pod_v<T> && !is_cross_convertable<T>::value, dummyT>;
+	using memcpy_able_d = std::enable_if_t<std::is_trivially_copyable_v<T> && !is_cross_convertable<T>::value, dummyT>;
 	template<class T>
-	using pod = pod_d<T, T>;
+	using memcpy_able = memcpy_able_d<T, T>;
 
 	Packet(const Packet&) = default;
 	Packet(Packet&&) = default;
@@ -144,18 +144,18 @@ struct Packet {
 	Packet(const std::string& data) : Packet(Header::type_hash_code<std::string>(), data.data(), data.size()) {}
 	
 	template<class T>
-	Packet(size_t id, const T& data, pod_d<T> dummy_0 = {}) : Packet(id, std::addressof(data), sizeof(T)) {}
+	Packet(size_t id, const T& data, memcpy_able_d<T> dummy_0 = {}) : Packet(id, std::addressof(data), sizeof(T)) {}
 	template<class enumT, class T>
-	Packet(enumT type, const T& data, Header::enum32_t<enumT> dummy_0 = {}, pod_d<T> dummy_1 = {}) : Packet(type, std::addressof(data), sizeof(T)) {}
+	Packet(enumT type, const T& data, Header::enum32_t<enumT> dummy_0 = {}, memcpy_able_d<T> dummy_1 = {}) : Packet(type, std::addressof(data), sizeof(T)) {}
 	template<class T>
-	Packet(const T& data, pod_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<T>(), std::addressof(data), sizeof(T)) {}
+	Packet(const T& data, memcpy_able_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<T>(), std::addressof(data), sizeof(T)) {}
 
 	template<class T>
-	Packet(size_t id, const std::vector<T>& data, pod_d<T> dummy_0 = {}) : Packet(id, data.data(), data.size() * sizeof(T)) {}
+	Packet(size_t id, const std::vector<T>& data, memcpy_able_d<T> dummy_0 = {}) : Packet(id, data.data(), data.size() * sizeof(T)) {}
 	template<class enumT, class T>
-	Packet(enumT type, const std::vector<T>& data, Header::enum32_t<enumT> dummy_0 = {}, pod_d<T> dummy_1 = {}) : Packet(type, data.data(), data.size() * sizeof(T)) {}
+	Packet(enumT type, const std::vector<T>& data, Header::enum32_t<enumT> dummy_0 = {}, memcpy_able_d<T> dummy_1 = {}) : Packet(type, data.data(), data.size() * sizeof(T)) {}
 	template<class T>
-	Packet(const std::vector<T>& data, pod_d<T> dummy_0) : Packet(Header::type_hash_code<std::vector<T>>(), data.data(), data.size() * sizeof(T)) {}
+	Packet(const std::vector<T>& data, memcpy_able_d<T> dummy_0) : Packet(Header::type_hash_code<std::vector<T>>(), data.data(), data.size() * sizeof(T)) {}
 
 	template<class T>
 	Packet(size_t id, const T& data, cross_convertable_d<T> dummy_0 = {}) {
@@ -209,7 +209,7 @@ struct Packet {
 	}
 
 	template<class T>
-	std::optional<pod<T>> Get() const {
+	std::optional<memcpy_able<T>> Get() const {
 		if (CheckHeader(sizeof(T))) {
 			return std::nullopt;
 		}
@@ -239,7 +239,7 @@ struct Packet {
 	}
 
 	template<class T>
-	std::optional<std::vector<pod<T>>> GetArray() const {
+	std::optional<std::vector<memcpy_able<T>>> GetArray() const {
 		if (CheckHeader()) {
 			return std::nullopt;
 		}
@@ -280,7 +280,7 @@ struct Packet {
 		dest.insert(dest.end(), static_cast<const uint8_t*>(src), static_cast<const uint8_t*>(src) + size);
 	}
 
-	template<class T, typename = pod_d<T>>
+	template<class T, typename = memcpy_able_d<T>>
 	static void StoreBytes(buf_t& dest, const T& src) {
 		StoreBytes(dest, &src, sizeof(T));
 	}
@@ -289,7 +289,7 @@ struct Packet {
 		std::copy(it, it += size, static_cast<uint8_t*>(dest));
 	}
 
-	template<class T, typename = pod_d<T>>
+	template<class T, typename = memcpy_able_d<T>>
 	static void LoadBytes(buf_t::const_iterator& it, T& dest) {
 		LoadBytes(it, &dest, sizeof(T));
 	}
@@ -305,7 +305,10 @@ struct Packet {
 		return {m_buffer.begin() + HeaderSize, m_buffer.end()};
 	}
 	sentinelbyte_t FromBytes(const buf_t& src) {
-		
+		auto it = src.begin();
+		m_buffer.resize(src.size());
+		LoadBytes(it, m_buffer.data(), m_buffer.size());
+		return it;
 	}
 
 private:

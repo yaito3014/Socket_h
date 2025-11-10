@@ -39,4 +39,8 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="docs\Overview.md" />
+    <None Include="docs\template.md" />
+  </ItemGroup>
 </Project>

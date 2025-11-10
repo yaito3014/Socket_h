@@ -405,7 +405,7 @@ public:
 		}
 		return true;
 	}
-	int Available() {
+	int Available() const {
 #ifdef _MSC_BUILD
 		u_long bytes = 0;
 		if (ioctlsocket(sockbase::sock(), FIONREAD, &bytes) == SOCKET_ERROR) {

@@ -5,8 +5,8 @@
 #include <iomanip>
 #include <chrono>
 
-#include "include/MultiWordInt.h"
-#include "include/ModInt.h"
+// #include "include/MultiWordInt.h"
+// #include "include/ModInt.h"
 
 
 #include "include/Socket.h"
@@ -70,7 +70,7 @@ void Server() {
 
 	TCPServer server(8080);
 
-	std::vector<TCPSocket> clients;
+	std::unordered_map<TCPSocket, ClientData> clients;
 	std::deque<TCPSocket*> lostqueue;
 
 	while (true) {
@@ -95,9 +95,9 @@ void Server() {
 			clients.erase(std::remove(clients.begin(), clients.end(), *p), clients.end());
 		}
 
-		for (auto&& c : clients) {
+		for (auto&& [sock, client] : clients) {
 
-			int available = c.Available();
+			int available = sock.Available();
 
 			if (available <= 0) {
 				continue;
@@ -130,6 +130,15 @@ void Client() {
 		return;
 	}
 
+	ClientData _data;
+
+	std::cin >> _data.Level;
+	std::cin >> _data.Name;
+
+	Packet p = Packet(_data);
+
+	server.Send(p);
+
 	while (true) {
 		if (server.LostConnection()) {
 			break;
@@ -141,10 +150,11 @@ void Client() {
 		std::cout << "input sendval: ";
 		std::cin >> sendval;
 
+		Packet pak = Packet(sendval);
 		server.Send(sendval);
 
-		auto pak = server.Recv();
-		reciveval = *pak->Get<std::string>();
+		pak = *server.Recv();
+		reciveval = *pak.Get<std::string>();
 		std::cout << "recived from server:" << reciveval << std::endl;
 	}
 }
