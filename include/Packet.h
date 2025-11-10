@@ -267,8 +267,8 @@ struct Packet {
 	template<class T>
 	static std::pair<from_byteable<T>, sentinelbyte_t> Convert(const buf_t& from) {
 		T ret;
-		sentinelbyte_t i = ret.FromBytes(from);
-		return {ret, i};
+		sentinelbyte_t it = ret.FromBytes(from);
+		return {ret, it};
 	}
 	
 	static void StoreBytes(buf_t& dest, const void* src, size_t size) {
@@ -291,6 +291,16 @@ struct Packet {
 
 	bool CheckHeader(size_t option = 1) const {
 		return m_buffer.size() < HeaderSize + option;
+	}
+
+	buf_t ToBytes() const {
+		if (CheckHeader()) {
+			return {};
+		}
+		return {m_buffer.begin() + HeaderSize, m_buffer.end()};
+	}
+	sentinelbyte_t FromBytes(const buf_t& src) {
+		
 	}
 
 private:

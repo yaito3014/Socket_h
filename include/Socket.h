@@ -495,7 +495,7 @@ public:
 
 		while (received < size) {
 			int ret = recv(sockbase::sock(), (char*)dest + received, size - received, 0);
-			if (ret <= 0) return false;
+			if (ret <= 0) { return false; }
 			received += ret;
 		}
 		return true;
