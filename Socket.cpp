@@ -143,7 +143,8 @@ void Client() {
 
 		server.Send(sendval);
 
-		reciveval = *server.Recv()->Get<std::string>();
+		auto pak = server.Recv();
+		reciveval = *pak->Get<std::string>();
 		std::cout << "recived from server:" << reciveval << std::endl;
 	}
 }
