@@ -82,7 +82,7 @@ struct IPAddressBase {
 		std::conditional_t<IsIPv6, rawaddr6_t,
 		void>>;
 
-	constexpr static
+	static constexpr
 		std::conditional_t<IsIPv4, decltype(&rawaddr_t::sin_port),
 		std::conditional_t<IsIPv6, decltype(&rawaddr6_t::sin6_port),
 		void*>> PortPtr() {
@@ -95,7 +95,7 @@ struct IPAddressBase {
 		return nullptr;
 	}
 
-	constexpr static
+	static constexpr
 		std::conditional_t<IsIPv4, decltype(&rawaddr_t::sin_addr),
 		std::conditional_t<IsIPv6, decltype(&rawaddr6_t::sin6_addr),
 		void*>> AddressPtr() {
@@ -108,7 +108,7 @@ struct IPAddressBase {
 		return nullptr;
 	}
 
-	constexpr static size_t AddressStringSize() {
+	static constexpr size_t AddressStringSize() {
 		return
 			(IsIPv4 ? INET_ADDRSTRLEN :
 			(IsIPv6 ? INET6_ADDRSTRLEN : 128));

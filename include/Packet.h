@@ -85,22 +85,12 @@ struct Packet {
 	using to_byteable = to_byteable_d<T, T>;
 	
 	template<class T, class dummyT = std::nullptr_t>
-	using from_byteable_d = std::enable_if_t<std::is_same<decltype(std::declval<T>().FromBytes(std::declval<buf_t>())), lastbyte_t>::value, dummyT>;
+	using from_byteable_d = std::enable_if_t<std::is_same<decltype(std::declval<T>().FromBytes(std::declval<buf_t>())), sentinelbyte_t>::value, dummyT>;
 	template<class T>
 	using from_byteable = from_byteable_d<T, T>;
 
 	template<class T>
 	using cross_convertable_d = from_byteable_d<to_byteable<T>>;
-	template<class T>
-	using cross_convertable = from_byteable<to_byteable<T>>;
-
-	template<class, class = void>
-	struct is_cross_convertable : std::false_type {};
-	template<class T>
-	struct is_cross_convertable<T, std::void_t<cross_convertable_d<T>>> : std::true_type {};
-
-	template<class T, class dummyT = std::nullptr_t>
-	using stdlayout_d = std::enable_if_t<std::is_standard_layout_v<T> && !is_cross_convertable<T>::value, dummyT>;
 	template<class T>
 	using cross_convertable = from_byteable<to_byteable<T>>;
 
@@ -168,7 +158,7 @@ struct Packet {
 
 	template<class T>
 	Packet(size_t id, const T& data, cross_convertable_d<T> dummy_0 = {}) {
-		buf_t _data = data.ToBytes();
+		buf_t _data = Convert<T>(data);
 		*this = Packet(id, _data.data(), _data.size());
 	}
 	template<class enumT, class T>
@@ -260,7 +250,7 @@ struct Packet {
 			return std::nullopt;
 		}
 		std::vector<T> ret;
-		lastbyte_t it = m_buffer.begin() + HeaderSize;
+		sentinelbyte_t it = m_buffer.begin() + HeaderSize;
 		while (it < m_buffer.end()) {
 			auto&& [elem, last] = Convert<T>({it, m_buffer.end()});
 			ret.push_back(std::move(elem));
@@ -277,7 +267,7 @@ struct Packet {
 	template<class T>
 	static std::pair<from_byteable<T>, sentinelbyte_t> Convert(const buf_t& from) {
 		T ret;
-		lastbyte_t i = ret.FromBytes(from);
+		sentinelbyte_t i = ret.FromBytes(from);
 		return {ret, i};
 	}
 	
