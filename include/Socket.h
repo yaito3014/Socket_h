@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifdef _MSC_BUILD
 #ifndef _WINDOWS_
@@ -510,13 +510,13 @@ public:
 	}
 	std::optional<Packet> Recv() {
 		bytearray head(Packet::HeaderSize);
-		if (Recv(head)) {
+		if (!Recv(head)) {
 			return std::nullopt;
 		}
 		Packet pak;
 		pak = std::move(head);
 		bytearray data(pak.GetHeader()->Size);
-		if (Recv(data)) {
+		if (!Recv(data)) {
 			return std::nullopt;
 		}
 		return Packet(pak.GetHeader()->Type, data);
@@ -544,13 +544,13 @@ public:
 	}
 	std::optional<Packet> EncryptionRecv() {
 		bytearray head(Packet::HeaderSize);
-		if (Recv(head)) {
+		if (!Recv(head)) {
 			return std::nullopt;
 		}
 		Packet pak;
 		pak = std::move(head);
 		bytearray data(pak.GetHeader()->Size);
-		if (Recv(data)) {
+		if (!Recv(data)) {
 			return std::nullopt;
 		}
 		Decrypt(data, data);
