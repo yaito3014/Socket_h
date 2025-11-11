@@ -161,7 +161,21 @@ void Client() {
 
 	TCPSocket server;
 
-	if (server.Connect(IPAddress::Loopback().Port(8080))) {
+	std::cout << "input connect server address" << std::endl;
+	std::string str_addr;
+	std::cin >> std::quoted(str_addr);
+	std::cout << "input connect server address" << std::endl;
+	unsigned short port;
+	std::cin >> port;
+
+	auto op_addr = IPAddress::SolveHostName(str_addr);
+
+	if (!op_addr) {
+		std::cout << "can't solved address" << std::endl;
+		return;
+	}
+
+	if (server.Connect(op_addr->Port(port))) {
 		std::cout << "connected server." << std::endl;
 	}
 	else {
@@ -209,6 +223,10 @@ void Client() {
 			break;
 		}
 		
+		if (server.Available() <= 0) {
+			continue;
+		}
+
 		auto pak = server.Recv();
 		
 		if (!pak) {
