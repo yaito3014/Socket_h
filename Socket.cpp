@@ -40,6 +40,39 @@ struct ClientData {
 	}
 };
 
+struct ContainerInContainer {
+
+	std::vector<std::string> names;
+
+	Packet::buf_t ToBytes() const {
+		Packet::buf_t ret;
+		uint32_t size = names.size();
+		Packet::StoreBytes(ret, size);
+		for (auto&& elem : names) {
+			uint32_t len = elem.size();
+			Packet::StoreBytes(ret, len);
+			Packet::StoreBytes(ret, names.data(), len);
+		}
+		return ret;
+	}
+
+	Packet::sentinelbyte_t FromBytes(const Packet::buf_t& src) {
+		auto it = src.begin();
+		uint32_t size = 0;
+		Packet::LoadBytes(it, size);
+		names.reserve(size);
+		for (size_t i = 0; i < size; ++i) {
+			uint32_t len = 0;
+			Packet::LoadBytes(it, len);
+			std::string elem;
+			elem.resize(len);
+			Packet::LoadBytes(it, elem.data(), len);
+			names.push_back(elem);
+		}
+		return it;
+	}
+};
+
 struct StatusData {
 
 	int stat = 0;
@@ -47,9 +80,10 @@ struct StatusData {
 
 };
 
-
 int main(int argc, char* argv[]) {
 	
+	// arg[1]{ 0 = server, 1 = client }
+
 	std::vector<std::string> args;
 	args.insert(args.end(), argv, argv + argc);
 

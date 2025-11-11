@@ -125,51 +125,51 @@ struct Packet {
 		std::memcpy(m_buffer.data() + HeaderSize, src, head.Size);
 	}
 
-	template<class T>
-	Packet(Header::enum32_t<T> datatype, const void* src, uint32_t size) : Packet(static_cast<uint32_t>(datatype), src, size) {}
-
-	Packet(size_t id, const std::vector<uint8_t>& data) : Packet(id, data.data(), data.size()) {}
 	template<class enumT>
-	Packet(Header::enum32_t<enumT> type, const std::vector<uint8_t>& data) : Packet(type, data.data(), data.size()) {}
+	Packet(enumT datatype, const void* src, uint32_t size, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(datatype), src, size) {}
+
+	Packet(uint32_t id, const std::vector<uint8_t>& data) : Packet(id, data.data(), data.size()) {}
+	template<class enumT>
+	Packet(enumT type, const std::vector<uint8_t>& data, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), data.data(), data.size()) {}
 	
 	template<size_t len>
 	Packet(size_t id, const char(&data)[len]) : Packet(id, std::addressof(data), len - 1) {}
 	template<class enumT, size_t len>
-	Packet(Header::enum32_t<enumT> type, const char(&data)[len]) : Packet(type, std::addressof(data), len - 1) {}
+	Packet(enumT type, const char(&data)[len], Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), std::addressof(data), len - 1) {}
 	template<size_t len>
 	Packet(const char(&data)[len]) : Packet(Header::type_hash_code<std::string>(), std::addressof(data), len - 1) {}
 
-	Packet(size_t id, const std::string& data) : Packet(id, data.data(), data.size()) {}
+	Packet(uint32_t id, const std::string& data) : Packet(id, data.data(), data.size()) {}
 	template<class enumT>
-	Packet(Header::enum32_t<enumT> type, const std::string& data) : Packet(type, data.data(), data.size()) {}
+	Packet(enumT type, const std::string& data, Header::enum32_t<enumT> dummy_0 = {}) : Packet(type, data.data(), data.size()) {}
 	Packet(const std::string& data) : Packet(Header::type_hash_code<std::string>(), data.data(), data.size()) {}
 	
 	template<class T>
-	Packet(size_t id, const T& data, memcpy_able_d<T> dummy_0 = {}) : Packet(id, std::addressof(data), sizeof(T)) {}
+	Packet(uint32_t id, const T& data, memcpy_able_d<T> dummy_0 = {}) : Packet(id, std::addressof(data), sizeof(T)) {}
 	template<class enumT, class T>
-	Packet(enumT type, const T& data, Header::enum32_t<enumT> dummy_0 = {}, memcpy_able_d<T> dummy_1 = {}) : Packet(type, std::addressof(data), sizeof(T)) {}
+	Packet(enumT type, const T& data, Header::enum32_t<enumT> dummy_0 = {}, memcpy_able_d<T> dummy_1 = {}) : Packet(static_cast<uint32_t>(type), std::addressof(data), sizeof(T)) {}
 	template<class T>
 	Packet(const T& data, memcpy_able_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<T>(), std::addressof(data), sizeof(T)) {}
 
 	template<class T>
-	Packet(size_t id, const std::vector<T>& data, memcpy_able_d<T> dummy_0 = {}) : Packet(id, data.data(), data.size() * sizeof(T)) {}
+	Packet(uint32_t id, const std::vector<T>& data, memcpy_able_d<T> dummy_0 = {}) : Packet(id, data.data(), data.size() * sizeof(T)) {}
 	template<class enumT, class T>
-	Packet(enumT type, const std::vector<T>& data, Header::enum32_t<enumT> dummy_0 = {}, memcpy_able_d<T> dummy_1 = {}) : Packet(type, data.data(), data.size() * sizeof(T)) {}
+	Packet(enumT type, const std::vector<T>& data, Header::enum32_t<enumT> dummy_0 = {}, memcpy_able_d<T> dummy_1 = {}) : Packet(static_cast<uint32_t>(type), data.data(), data.size() * sizeof(T)) {}
 	template<class T>
 	Packet(const std::vector<T>& data, memcpy_able_d<T> dummy_0) : Packet(Header::type_hash_code<std::vector<T>>(), data.data(), data.size() * sizeof(T)) {}
 
 	template<class T>
-	Packet(size_t id, const T& data, cross_convertable_d<T> dummy_0 = {}) {
+	Packet(uint32_t id, const T& data, cross_convertable_d<T> dummy_0 = {}) {
 		buf_t _data = Convert<T>(data);
 		*this = Packet(id, _data.data(), _data.size());
 	}
 	template<class enumT, class T>
-	Packet(enumT type, const T& data, Header::enum32_t<enumT> dummy_0 = {}, cross_convertable_d<T> dummy_1 = {}) : Packet(type, data) {}
+	Packet(enumT type, const T& data, Header::enum32_t<enumT> dummy_0 = {}, cross_convertable_d<T> dummy_1 = {}) : Packet(static_cast<uint32_t>(type), data) {}
 	template<class T>
 	Packet(const T& data, cross_convertable_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<T>(), data) {}
 
 	template<class T>
-	Packet(size_t id, const std::vector<T>& data, cross_convertable_d<T> dummy_0 = {}) {
+	Packet(uint32_t id, const std::vector<T>& data, cross_convertable_d<T> dummy_0 = {}) {
 		buf_t b;
 		b.reserve(data.size() * sizeof(T));
 		for (auto&& elem : data) {
