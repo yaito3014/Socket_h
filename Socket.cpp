@@ -29,14 +29,13 @@ struct ClientData {
 		return ret;
 	}
 	
-	Packet::sentinelbyte_t FromBytes(const Packet::buf_t& src) {
-		Packet::sentinelbyte_t it = src.begin();
-		Packet::LoadBytes(it, Level);
+	Packet::byte_view FromBytes(Packet::byte_view view) {
+		Packet::LoadBytes(view, Level);
 		uint32_t len = 0;
-		Packet::LoadBytes(it, len);
+		Packet::LoadBytes(view, len);
 		Name.resize(len);
-		Packet::LoadBytes(it, Name.data(), len);
-		return it;
+		Packet::LoadBytes(view, Name.data(), len);
+		return view;
 	}
 };
 
@@ -51,52 +50,87 @@ struct ContainerInContainer {
 		for (auto&& elem : names) {
 			uint32_t len = elem.size();
 			Packet::StoreBytes(ret, len);
-			Packet::StoreBytes(ret, names.data(), len);
+			Packet::StoreBytes(ret, elem.data(), len);
 		}
 		return ret;
 	}
 
-	Packet::sentinelbyte_t FromBytes(const Packet::buf_t& src) {
-		auto it = src.begin();
+	Packet::byte_view FromBytes(Packet::byte_view view) {
 		uint32_t size = 0;
-		Packet::LoadBytes(it, size);
+		Packet::LoadBytes(view, size);
 		names.reserve(size);
 		for (size_t i = 0; i < size; ++i) {
 			uint32_t len = 0;
-			Packet::LoadBytes(it, len);
+			Packet::LoadBytes(view, len);
 			std::string elem;
 			elem.resize(len);
-			Packet::LoadBytes(it, elem.data(), len);
-			names.push_back(elem);
+			Packet::LoadBytes(view, elem.data(), len);
+			names.push_back(std::move(elem));
 		}
-		return it;
+		return view;
 	}
 };
 
-struct StatusData {
+struct ContainerInVariable {
+	std::vector<ContainerInContainer> container;
 
-	int stat = 0;
-	int val = 0;
+	Packet::buf_t ToBytes() const {
+		Packet::buf_t ret;
+		uint32_t size = container.size();
+		Packet::StoreBytes(ret, size);
+		for (auto&& elem : container) {
+			Packet::StoreBytes(ret, elem);
+		}
+		return ret;
+	}
 
+	Packet::byte_view FromBytes(Packet::byte_view view) {
+		uint32_t size = 0;
+		Packet::LoadBytes(view, size);
+		container.reserve(size);
+		for (size_t i = 0; i < size; ++i) {
+			ContainerInContainer elem;
+			Packet::LoadBytes(view, elem);
+			container.push_back(std::move(elem));
+		}
+		return view;
+	}
 };
 
 int main(int argc, char* argv[]) {
 	
 	// arg[1]{ 0 = server, 1 = client }
 
-	std::vector<std::string> args;
-	args.insert(args.end(), argv, argv + argc);
+	ContainerInContainer elem;
 
-	if (args.size() <= 1) {
-		return -1;
-	}
+	elem.names.push_back("test1");
+	elem.names.push_back("test2");
+	elem.names.push_back("test3");
+	elem.names.push_back("test4");
 
-	if (std::stoi(args[1]) == 0) {
-		Server();
-	}
-	else {
-		Client();
-	}
+	ContainerInVariable v;
+	v.container.push_back(elem);
+	v.container.push_back(elem);
+	v.container.push_back(elem);
+	v.container.push_back(elem);
+
+	Packet pak = Packet(v);
+
+	ContainerInVariable ret = *pak.Get<ContainerInVariable>();
+
+	//std::vector<std::string> args;
+	//args.insert(args.end(), argv, argv + argc);
+	//
+	//if (args.size() <= 1) {
+	//	return -1;
+	//}
+	//
+	//if (std::stoi(args[1]) == 0) {
+	//	Server();
+	//}
+	//else {
+	//	Client();
+	//}
 	
 	return 0;
 }

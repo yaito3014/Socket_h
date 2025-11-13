@@ -235,10 +235,10 @@ public:
 		using byte4_t = std::array<byte_t, 4>;
 
 		union {
-			word_t m_words[block_size / sizeof(word_t)]{};
+			word_t m_words[block_size / sizeof(word_t)];
 			int4_t m_int4;
 			byte4_t m_byte4s[block_size / sizeof(byte4_t)];
-			cbytearray<block_size> m_bytes;
+			cbytearray<block_size> m_bytes{};
 		};
 
 		void dbg_print() {
@@ -764,7 +764,7 @@ private:
 
 		while (wordgenerated < itercount) {
 			constexpr size_t mask = (sizeof(uint32_t) - 1);
-			size_t shift = std::log2(sizeof(uint32_t));
+			size_t shift = _bit_width(sizeof(uint32_t) - 1);
 			size_t shifted = wordgenerated >> shift;
 			uint32_t temp = rk[(wordgenerated - 1) >> shift].m_int4[(wordgenerated - 1) & mask];
 

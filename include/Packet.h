@@ -78,27 +78,52 @@ struct Packet {
 
 	using buf_t = std::vector<uint8_t>;
 
-	using sentinelbyte_t = decltype(std::declval<const buf_t>().end());
+	using byte_iterator_t = decltype(std::declval<const buf_t>().end());
+	
+	template<class containerT>
+	struct _view {
+
+		using iterator = decltype(std::declval<containerT>().begin());
+
+		_view(containerT& from) : _beg(from.begin()), _end(from.end()) {}
+		_view(containerT& from, ptrdiff_t start_off) : _beg(from.begin() + start_off), _end(from.end()) {}
+		_view(containerT& from, ptrdiff_t start_off, ptrdiff_t end_off) : _beg(from.begin() + start_off), _end(from.end() + end_off) {}
+
+		iterator begin() const {
+			return _beg;
+		}
+
+		iterator end() const {
+			return _end;
+		}
+
+		iterator _beg;
+		iterator _end;
+
+	};
+
+	using byte_view = _view<const buf_t>;
+	using mut_byte_view = _view<buf_t>;
 
 	template<class T, class dummyT = std::nullptr_t>
-	using to_byteable_d = std::enable_if_t<std::is_same<decltype(std::declval<T>().ToBytes()), buf_t>::value, dummyT>;
+	using to_byteable_d = std::enable_if_t<std::is_same<decltype(std::declval<const T>().ToBytes()), buf_t>::value, dummyT>;
 	template<class T>
 	using to_byteable = to_byteable_d<T, T>;
 	
 	template<class T, class dummyT = std::nullptr_t>
-	using from_byteable_d = std::enable_if_t<std::is_same<decltype(std::declval<T>().FromBytes(std::declval<buf_t>())), sentinelbyte_t>::value, dummyT>;
+	using from_byteable_d = std::enable_if_t<std::is_same<decltype(std::declval<T>().FromBytes(std::declval<byte_view>())), byte_view>::value, dummyT>;
 	template<class T>
 	using from_byteable = from_byteable_d<T, T>;
 
 	template<class T>
-	using cross_convertable_d = from_byteable_d<to_byteable<T>>;
+	using cross_convertible_d = from_byteable_d<to_byteable<T>>;
 	template<class T>
 	using cross_convertable = from_byteable<to_byteable<T>>;
 
 	template<class, class = void>
 	struct is_cross_convertable : std::false_type {};
 	template<class T>
-	struct is_cross_convertable<T, std::void_t<cross_convertable_d<T>>> : std::true_type {};
+	struct is_cross_convertable<T, std::void_t<cross_convertible_d<T>>> : std::true_type {};
 
 	template<class T, class dummyT = std::nullptr_t>
 	using memcpy_able_d = std::enable_if_t<std::is_trivially_copyable_v<T> && !is_cross_convertable<T>::value, dummyT>;
@@ -159,17 +184,17 @@ struct Packet {
 	Packet(const std::vector<T>& data, memcpy_able_d<T> dummy_0) : Packet(Header::type_hash_code<std::vector<T>>(), data.data(), data.size() * sizeof(T)) {}
 
 	template<class T>
-	Packet(uint32_t id, const T& data, cross_convertable_d<T> dummy_0 = {}) {
+	Packet(uint32_t id, const T& data, cross_convertible_d<T> dummy_0 = {}) {
 		buf_t _data = Convert<T>(data);
 		*this = Packet(id, _data.data(), _data.size());
 	}
 	template<class enumT, class T>
-	Packet(enumT type, const T& data, Header::enum32_t<enumT> dummy_0 = {}, cross_convertable_d<T> dummy_1 = {}) : Packet(static_cast<uint32_t>(type), data) {}
+	Packet(enumT type, const T& data, Header::enum32_t<enumT> dummy_0 = {}, cross_convertible_d<T> dummy_1 = {}) : Packet(static_cast<uint32_t>(type), data) {}
 	template<class T>
-	Packet(const T& data, cross_convertable_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<T>(), data) {}
+	Packet(const T& data, cross_convertible_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<T>(), data) {}
 
 	template<class T>
-	Packet(uint32_t id, const std::vector<T>& data, cross_convertable_d<T> dummy_0 = {}) {
+	Packet(uint32_t id, const std::vector<T>& data, cross_convertible_d<T> dummy_0 = {}) {
 		buf_t b;
 		b.reserve(data.size() * sizeof(T));
 		for (auto&& elem : data) {
@@ -179,9 +204,9 @@ struct Packet {
 		*this = Packet(id, b.data(), b.size());
 	}
 	template<class enumT, class T>
-	Packet(enumT type, const std::vector<T>& data, Header::enum32_t<enumT> dummy_0 = {}, cross_convertable_d<T> dummy_1 = {}) : Packet(static_cast<uint32_t>(type), data) {}
+	Packet(enumT type, const std::vector<T>& data, Header::enum32_t<enumT> dummy_0 = {}, cross_convertible_d<T> dummy_1 = {}) : Packet(static_cast<uint32_t>(type), data) {}
 	template<class T>
-	Packet(const std::vector<T>& data, cross_convertable_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<std::vector<T>>(), data) {}
+	Packet(const std::vector<T>& data, cross_convertible_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<std::vector<T>>(), data) {}
 
 	explicit Packet(std::ifstream& ifs) {
 		std::istreambuf_iterator<std::ifstream::char_type> begin(ifs);
@@ -224,7 +249,7 @@ struct Packet {
 		if (CheckHeader()) {
 			return std::nullopt;
 		}
-		auto&& [ret, _] = Convert<T>({m_buffer.begin() + HeaderSize, m_buffer.end()});
+		auto&& [ret, _] = Convert<T>({m_buffer, HeaderSize});
 		return ret;
 	}
 	
@@ -256,11 +281,11 @@ struct Packet {
 			return std::nullopt;
 		}
 		std::vector<T> ret;
-		sentinelbyte_t it = m_buffer.begin() + HeaderSize;
-		while (it < m_buffer.end()) {
-			auto&& [elem, last] = Convert<T>({it, m_buffer.end()});
+		byte_view view = {m_buffer, HeaderSize};
+		while (view._beg < view._end) {
+			auto&& [elem, last] = Convert<T>(view);
 			ret.push_back(std::move(elem));
-			it = last;
+			view._beg = last._beg;
 		}
 		return ret;
 	}
@@ -271,46 +296,46 @@ struct Packet {
 	}
 
 	template<class T>
-	static std::pair<from_byteable<T>, sentinelbyte_t> Convert(const buf_t& from) {
+	static std::pair<from_byteable<T>, byte_view> Convert(byte_view from) {
 		T ret;
-		sentinelbyte_t it = ret.FromBytes(from);
-		return {ret, it};
+		byte_view view = ret.FromBytes(from);
+		return {ret, view};
 	}
 	
-	static void StoreBytes(buf_t& dest, const void* src, size_t size) {
+	static void StoreBytes(buf_t& dest, const void* src, uint32_t size) {
 		dest.insert(dest.end(), static_cast<const uint8_t*>(src), static_cast<const uint8_t*>(src) + size);
 	}
 
-	template<class T, typename = memcpy_able_d<T>>
-	static void StoreBytes(buf_t& dest, const T& src) {
+	template<class T>
+	static void StoreBytes(buf_t& dest, const T& src, memcpy_able_d<T> dummy_0 = {}) {
 		StoreBytes(dest, &src, sizeof(T));
 	}
 
-	static void LoadBytes(buf_t::const_iterator& it, void* dest, size_t size) {
-		std::copy(it, it + size, static_cast<uint8_t*>(dest));
-		it += size;
+	template<class T>
+	static void StoreBytes(buf_t& dest, const T& src, cross_convertible_d<T> dummy_0 = {}) {
+		buf_t data = Convert<T>(src);
+		StoreBytes(dest, data.data(), data.size());
 	}
 
-	template<class T, typename = memcpy_able_d<T>>
-	static void LoadBytes(buf_t::const_iterator& it, T& dest) {
-		LoadBytes(it, &dest, sizeof(T));
+	static void LoadBytes(byte_view& view, void* dest, uint32_t size) {
+		std::copy(view._beg, view._beg + size, static_cast<uint8_t*>(dest));
+		view._beg += size;
+	}
+
+	template<class T>
+	static void LoadBytes(byte_view& view, T& dest, memcpy_able_d<T> dummy_0 = {}) {
+		LoadBytes(view, &dest, sizeof(T));
+	}
+
+	template<class T>
+	static void LoadBytes(byte_view& view, T& dest, cross_convertible_d<T> dummy_0 = {}) {
+		auto&& [ret, last] = Convert<T>(view);
+		dest = std::move(ret);
+		view._beg = last._beg;
 	}
 
 	bool CheckHeader(size_t option = 1) const {
 		return m_buffer.size() < HeaderSize + option;
-	}
-
-	buf_t ToBytes() const {
-		if (CheckHeader()) {
-			return {};
-		}
-		return {m_buffer.begin() + HeaderSize, m_buffer.end()};
-	}
-	sentinelbyte_t FromBytes(const buf_t& src) {
-		auto it = src.begin();
-		m_buffer.resize(src.size());
-		LoadBytes(it, m_buffer.data(), m_buffer.size());
-		return it;
 	}
 
 private:
