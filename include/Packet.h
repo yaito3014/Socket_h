@@ -340,6 +340,14 @@ struct Packet {
 		StoreBytes(dest, src.data(), src.size());
 	}
 
+	static void StoreBytes(buf_t& dest, const std::vector<std::string>& src) {
+		uint32_t size = src.size();
+		StoreBytes(dest, size);
+		for (auto&& elem : src) {
+			StoreBytes(dest, elem);
+		}
+	}
+
 	static void LoadBytes(byte_view& view, void* dest, uint32_t size) {
 		std::copy(view._beg, view._beg + size, static_cast<uint8_t*>(dest));
 		view._beg += size;
@@ -383,6 +391,18 @@ struct Packet {
 		LoadBytes(view, size);
 		dest.resize(size);
 		LoadBytes(view, dest.data(), size);
+	}
+
+	static void LoadBytes(byte_view& view, std::vector<std::string>& dest) {
+		uint32_t size = 0;
+		LoadBytes(view, size);
+		dest.clear();
+		dest.reserve(size);
+		for (size_t i = 0; i < size; ++i) {
+			std::string ret;
+			LoadBytes(view, ret);
+			dest.push_back(std::move(ret));
+		}
 	}
 
 	bool CheckHeader(size_t option = 1) const {
