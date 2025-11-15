@@ -351,7 +351,7 @@ public:
 	}
 
 	bool IsInit() const noexcept {
-		return m_resource != nullptr;
+		return (bool)m_resource;
 	}
 
 	block_t Encrypt(const block_t& src) const {

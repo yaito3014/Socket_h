@@ -538,10 +538,10 @@ public:
 
 	bool EncryptionSend(const bytearray& src) const {
 		bytearray target;
-		return CryptEngine.IsInit() && Encrypt(src, target) && Send(target);
+		return Encrypt(src, target) && Send(target);
 	}
 	bool EncryptionRecv(bytearray& dest) const {
-		return Recv(dest) && CryptEngine.IsInit() && Decrypt(dest, dest);
+		return Recv(dest) && Decrypt(dest, dest);
 	}
 
 	bool EncryptionSend(const Packet& src) const {
@@ -638,6 +638,9 @@ public:
 protected:
 
 	bool Crypt(const std::vector<uint8_t>& src, std::vector<uint8_t>& dest, typename AES128::cryptmode_t mode) const {
+		if (!CryptEngine.IsInit()) {
+			return false;
+		}
 		return ((&CryptEngine)->*mode)(src, dest, src.size());
 	}
 	bool Encrypt(const std::vector<uint8_t>& src, std::vector<uint8_t>& dest) const {
