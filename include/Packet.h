@@ -158,7 +158,7 @@ struct Packet {
 
 	Packet(uint32_t id, const buf_t& data) : Packet(id, data.data(), data.size()) {}
 	template<class enumT>
-	Packet(enumT type, const  buf_t& data, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), data.data(), data.size()) {}
+	Packet(enumT type, const buf_t& data, Header::enum32_t<enumT> dummy_0 = {}) : Packet(type, data.data(), data.size()) {}
 	
 	template<size_t len>
 	Packet(size_t id, const char(&data)[len]) : Packet(id, std::addressof(data), len - 1) {}
@@ -211,17 +211,36 @@ struct Packet {
 	template<class T>
 	Packet(const std::vector<T>& data, cross_convertible_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<std::vector<T>>(), data) {}
 
+	Packet(uint32_t id, std::ifstream& ifs) {
+
+		if (!ifs.is_open()) {
+			return;
+		}
+
+		std::istreambuf_iterator<char> begin(ifs);
+		std::istreambuf_iterator<char> end;
+
+		std::string data(begin, end);
+
+		*this = Packet(id, data);
+	}
+	template<class enumT>
+	Packet(enumT type, std::ifstream& ifs, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), ifs) {}
+	explicit Packet(std::ifstream& ifs) : Packet(Header::type_hash_code<FILE>(), ifs) {}
+
+	/*
+	
 	explicit Packet(uint32_t id, const std::filesystem::path& path) {
 		std::error_code ec;
 		if (path.empty() || !std::filesystem::exists(path, ec) || ec) {
 			return;
 		}
-		
+
 		const auto size = std::filesystem::file_size(path, ec);
 		if (ec) {
 			return;
 		}
-		
+
 		std::ifstream ifs(path, std::ios::binary);
 
 		if (!ifs.is_open()) {
@@ -238,7 +257,9 @@ struct Packet {
 	template<class enumT>
 	explicit Packet(enumT type, const std::filesystem::path& path, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), path) {}
 	explicit Packet(const std::filesystem::path& path) : Packet(Header::type_hash_code<FILE>(), path) {}
-
+	
+	*/
+	
 	size_t Size() const { return m_buffer.size(); }
 
 	const buf_t& GetBuffer() const { return m_buffer; }
@@ -327,10 +348,18 @@ struct Packet {
 	static void StoreBytes(buf_t& dest, const void* src, uint32_t size) {
 		dest.insert(dest.end(), static_cast<const uint8_t*>(src), static_cast<const uint8_t*>(src) + size);
 	}
+	static void LoadBytes(byte_view& view, void* dest, uint32_t size) {
+		std::copy(view._beg, view._beg + size, static_cast<uint8_t*>(dest));
+		view._beg += size;
+	}
 
 	template<class T>
 	static void StoreBytes(buf_t& dest, const T& src, memcpy_able_d<T> dummy_0 = {}) {
 		StoreBytes(dest, &src, sizeof(T));
+	}
+	template<class T>
+	static void LoadBytes(byte_view& view, T& dest, memcpy_able_d<T> dummy_0 = {}) {
+		LoadBytes(view, &dest, sizeof(T));
 	}
 
 	template<class T>
@@ -338,12 +367,25 @@ struct Packet {
 		buf_t data = Convert<T>(src);
 		StoreBytes(dest, data.data(), data.size());
 	}
+	template<class T>
+	static void LoadBytes(byte_view& view, T& dest, cross_convertible_d<T> dummy_0 = {}) {
+		auto&& [ret, last] = Convert<T>(view);
+		dest = std::move(ret);
+		view._beg = last._beg;
+	}
 
 	template<class T>
 	static void StoreBytes(buf_t& dest, const std::vector<T>& src, memcpy_able_d<T> dummy_0 = {}) {
 		uint32_t size = src.size();
 		StoreBytes(dest, size);
 		StoreBytes(dest, src.data(), sizeof(T) * size);
+	}
+	template<class T>
+	static void LoadBytes(byte_view& view, std::vector<T>& dest, memcpy_able_d<T> dummy_0 = {}) {
+		uint32_t size = 0;
+		LoadBytes(view, size);
+		dest.resize(size);
+		LoadBytes(view, dest.data(), sizeof(T) * size);
 	}
 
 	template<class T>
@@ -355,46 +397,6 @@ struct Packet {
 			StoreBytes(dest, data.data(), data.size());
 		}
 	}
-
-	static void StoreBytes(buf_t& dest, const std::string& src) {
-		uint32_t size = src.size();
-		StoreBytes(dest, size);
-		StoreBytes(dest, src.data(), src.size());
-	}
-
-	static void StoreBytes(buf_t& dest, const std::vector<std::string>& src) {
-		uint32_t size = src.size();
-		StoreBytes(dest, size);
-		for (auto&& elem : src) {
-			StoreBytes(dest, elem);
-		}
-	}
-
-	static void LoadBytes(byte_view& view, void* dest, uint32_t size) {
-		std::copy(view._beg, view._beg + size, static_cast<uint8_t*>(dest));
-		view._beg += size;
-	}
-
-	template<class T>
-	static void LoadBytes(byte_view& view, T& dest, memcpy_able_d<T> dummy_0 = {}) {
-		LoadBytes(view, &dest, sizeof(T));
-	}
-
-	template<class T>
-	static void LoadBytes(byte_view& view, T& dest, cross_convertible_d<T> dummy_0 = {}) {
-		auto&& [ret, last] = Convert<T>(view);
-		dest = std::move(ret);
-		view._beg = last._beg;
-	}
-
-	template<class T>
-	static void LoadBytes(byte_view& view, std::vector<T>& dest, memcpy_able_d<T> dummy_0 = {}) {
-		uint32_t size = 0;
-		LoadBytes(view, size);
-		dest.resize(size);
-		LoadBytes(view, dest.data(), sizeof(T) * size);
-	}
-
 	template<class T>
 	static void LoadBytes(byte_view& view, std::vector<T>& dest, cross_convertible_d<T> dummy_0 = {}) {
 		uint32_t size = 0;
@@ -408,6 +410,11 @@ struct Packet {
 		}
 	}
 
+	static void StoreBytes(buf_t& dest, const std::string& src) {
+		uint32_t size = src.size();
+		StoreBytes(dest, size);
+		StoreBytes(dest, src.data(), src.size());
+	}
 	static void LoadBytes(byte_view& view, std::string& dest) {
 		uint32_t size = 0;
 		LoadBytes(view, size);
@@ -415,6 +422,13 @@ struct Packet {
 		LoadBytes(view, dest.data(), size);
 	}
 
+	static void StoreBytes(buf_t& dest, const std::vector<std::string>& src) {
+		uint32_t size = src.size();
+		StoreBytes(dest, size);
+		for (auto&& elem : src) {
+			StoreBytes(dest, elem);
+		}
+	}
 	static void LoadBytes(byte_view& view, std::vector<std::string>& dest) {
 		uint32_t size = 0;
 		LoadBytes(view, size);
