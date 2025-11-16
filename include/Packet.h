@@ -209,6 +209,10 @@ struct Packet {
 	Packet(const std::vector<T>& data, cross_convertible_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<std::vector<T>>(), data) {}
 
 	Packet(uint32_t id, std::ifstream& ifs) {
+		if (!ifs.is_open()) {
+			return;
+		}
+
 		std::istreambuf_iterator<std::ifstream::char_type> begin(ifs);
 		std::istreambuf_iterator<std::ifstream::char_type> end;
 
@@ -216,7 +220,7 @@ struct Packet {
 
 		*this = Packet(id, infile);
 	}
-	template<class enumT, class T>
+	template<class enumT>
 	Packet(enumT type, std::ifstream& ifs, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), ifs) {}
 	explicit Packet(std::ifstream& ifs) : Packet(Header::type_hash_code<std::ifstream>(), ifs) {}
 
