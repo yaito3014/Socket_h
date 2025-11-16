@@ -156,9 +156,9 @@ struct Packet {
 	template<class enumT>
 	Packet(enumT datatype, const void* src, uint32_t size, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(datatype), src, size) {}
 
-	Packet(uint32_t id, const std::vector<uint8_t>& data) : Packet(id, data.data(), data.size()) {}
+	Packet(uint32_t id, const buf_t& data) : Packet(id, data.data(), data.size()) {}
 	template<class enumT>
-	Packet(enumT type, const std::vector<uint8_t>& data, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), data.data(), data.size()) {}
+	Packet(enumT type, const  buf_t& data, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), data.data(), data.size()) {}
 	
 	template<size_t len>
 	Packet(size_t id, const char(&data)[len]) : Packet(id, std::addressof(data), len - 1) {}
@@ -211,7 +211,7 @@ struct Packet {
 	template<class T>
 	Packet(const std::vector<T>& data, cross_convertible_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<std::vector<T>>(), data) {}
 
-	Packet(uint32_t id, const std::filesystem::path& path) {
+	explicit Packet(uint32_t id, const std::filesystem::path& path) {
 		std::error_code ec;
 		if (path.empty() || !std::filesystem::exists(path, ec) || ec) {
 			return;
@@ -236,7 +236,7 @@ struct Packet {
 		*this = Packet(id, data);
 	}
 	template<class enumT>
-	Packet(enumT type, const std::filesystem::path& path, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), path) {}
+	explicit Packet(enumT type, const std::filesystem::path& path, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), path) {}
 	explicit Packet(const std::filesystem::path& path) : Packet(Header::type_hash_code<FILE>(), path) {}
 
 	size_t Size() const { return m_buffer.size(); }
