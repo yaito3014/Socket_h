@@ -254,7 +254,7 @@ public:
 		}
 	};
 
-	struct alignas(block_size) block_t {
+	struct block_t {
 		using word_t = uint64_t;
 		using int4_t = std::array<uint32_t, 4>;
 		using byte4_t = std::array<byte_t, 4>;
