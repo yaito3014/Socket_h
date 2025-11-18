@@ -8,6 +8,10 @@
 #include <cmath>
 #include <cstring>
 
+#define __id_Debug_Log(id, message) std::string_view id##_debug_funcname = __func__; struct id { id(std::string_view funcname) : func(funcname) { std::cout << func << ": Start (" << #message << ")" << std::endl; } ~id() { std::cout << func << ": End (" << #message << ")" << std::endl; } std::string_view func; } id##_debug_obj{id##_debug_funcname};
+#define __Debug_Log(message) __id_Debug_Log(i845649237850, message);
+
+
 static constexpr size_t _bit_width(uint64_t test) noexcept {
 	constexpr size_t bits = sizeof(size_t) * 8;
 	constexpr size_t testmask = size_t(1) << (bits - 1);
@@ -236,13 +240,6 @@ public:
 
 		word_t m_words[block_size / sizeof(word_t)]{};
 		
-		void dbg_print() {
-			for (auto b : *get_bytes()) {
-				std::cout << std::setfill('0') << std::setw(2) << std::hex << std::right << (int)b;
-			}
-			std::cout << std::endl;
-		}
-
 		constexpr block_t() noexcept {}
 		constexpr block_t(word_t from) noexcept { m_words[0] = from; }
 		block_t(const cbytearray<block_size>& from) noexcept { *get_bytes() = from; }
@@ -351,6 +348,8 @@ public:
 		return Init(bytearray{key.begin(), key.end()});
 	}
 	bool Init(const cbytearray<16>& key) {
+
+		__Debug_Log();
 
 		m_resource = std::make_unique<_impl_resource>();
 
@@ -687,17 +686,21 @@ public:
 	
 private:
 
-	static constexpr void subbytes(block_t& b) noexcept {
+	static void subbytes(block_t& b) noexcept {
+		__Debug_Log();
+
 		for (size_t i = 0; i < block_size; ++i) {
 			b[i] = SBox[b[i]];
 		}
 	}
-	static constexpr void invsubbytes(block_t& b) noexcept {
+	static void invsubbytes(block_t& b) noexcept {
+		__Debug_Log();
 		for (size_t i = 0; i < block_size; ++i) {
 			b[i] = InvSBox[b[i]];
 		}
 	}
-	static constexpr void shiftrows(block_t& b) noexcept {
+	static void shiftrows(block_t& b) noexcept {
+		__Debug_Log();
 
 		block_t t = b;
 
@@ -733,7 +736,8 @@ private:
 		b.get_byte4()[3][2] = t.get_byte4()[1][2];
 		b.get_byte4()[3][3] = t.get_byte4()[2][3];
 	}
-	static constexpr void invshiftrows(block_t& b) noexcept {
+	static void invshiftrows(block_t& b) noexcept {
+		__Debug_Log();
 
 		block_t t = b;
 
@@ -769,37 +773,53 @@ private:
 		b.get_byte4()[3][2] = t.get_byte4()[1][2];
 		b.get_byte4()[3][3] = t.get_byte4()[0][3];
 	}
-	static constexpr void mixcolumn(typename block_t::byte4_t& r, uint32_t& dest) noexcept {
+	static void mixcolumn(typename block_t::byte4_t& r, uint32_t& dest) noexcept {
+		__Debug_Log();
+
 		dest = ColumnTable[0][r[0]] ^ ColumnTable[1][r[1]] ^ ColumnTable[2][r[2]] ^ ColumnTable[3][r[3]];
 	}
-	static constexpr void mixcolumns(block_t& b) noexcept {
+	static void mixcolumns(block_t& b) noexcept {
+		__Debug_Log();
+
 		constexpr size_t loop = sizeof(block_t::byte4_t) / sizeof(byte_t);
 		for (size_t i = 0; i < loop; ++i) {
 			mixcolumn(b.get_byte4()[i], (*b.get_int4())[i]);
 		}
 	}
-	static constexpr void invmixcolumn(typename block_t::byte4_t& r, uint32_t& dest)noexcept {
+	static void invmixcolumn(typename block_t::byte4_t& r, uint32_t& dest)noexcept {
+		__Debug_Log();
+		
 		dest = InvColumnTable[0][r[0]] ^ InvColumnTable[1][r[1]] ^ InvColumnTable[2][r[2]] ^ InvColumnTable[3][r[3]];
 	}
-	static constexpr void invmixcolumns(block_t& b)noexcept {
+	static void invmixcolumns(block_t& b)noexcept {
+		__Debug_Log();
+		
 		constexpr size_t loop = sizeof(block_t::byte4_t) / sizeof(byte_t);
 		for (size_t i = 0; i < loop; ++i) {
 			invmixcolumn(b.get_byte4()[i], (*b.get_int4())[i]);
 		}
 	}
-	static constexpr void addroundkey(block_t& s, const block_t& rk)noexcept {
+	static void addroundkey(block_t& s, const block_t& rk)noexcept {
+		__Debug_Log();
+		
 		s ^= rk;
 	}
-	static constexpr void rotword(uint32_t& w)noexcept {
+	static void rotword(uint32_t& w)noexcept {
+		__Debug_Log();
+		
 		w = _________ROR(w, 8);
 	}
-	static constexpr void subword(uint32_t& w)noexcept {
+	static void subword(uint32_t& w)noexcept {
+		__Debug_Log();
+		
 		w = ((uint32_t)SBox[(w >> 0) & 0xff] << 0) |
 			((uint32_t)SBox[(w >> 8) & 0xff] << 8) |
 			((uint32_t)SBox[(w >> 16) & 0xff] << 16) |
 			((uint32_t)SBox[(w >> 24) & 0xff] << 24);
 	}
-	static constexpr roundkeys _KeyExpansion(const block_t& key) noexcept {
+	static roundkeys _KeyExpansion(const block_t& key) noexcept {
+		__Debug_Log();
+		
 		constexpr size_t startwords = block_size / sizeof(uint32_t);
 		roundkeys rk{};
 		rk[0] = key;
@@ -827,7 +847,9 @@ private:
 
 		return rk;
 	}
-	static constexpr block_t _Encrypt(const block_t& src, const roundkeys& key) noexcept {
+	static block_t _Encrypt(const block_t& src, const roundkeys& key) noexcept {
+		__Debug_Log();
+		
 		block_t state = src;
 		addroundkey(state, key[0]);
 		for (size_t i = 1; i < Nr; ++i) {
@@ -841,7 +863,9 @@ private:
 		addroundkey(state, key[Nr]);
 		return state;
 	}
-	static constexpr block_t _Decrypt(const block_t& src, const roundkeys& key) noexcept {
+	static block_t _Decrypt(const block_t& src, const roundkeys& key) noexcept {
+		__Debug_Log();
+		
 		block_t state = src;
 		addroundkey(state, key[Nr]);
 		for (size_t i = Nr - 1; 1 <= i; i--) {
