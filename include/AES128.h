@@ -732,22 +732,6 @@ private:
 
 		block_t t = b;
 
-		//b.m_bytes[1] = t.m_bytes[5];
-		//b.m_bytes[2] = t.m_bytes[10];
-		//b.m_bytes[3] = t.m_bytes[15];
-		//
-		//b.m_bytes[5] = t.m_bytes[9];
-		//b.m_bytes[6] = t.m_bytes[14];
-		//b.m_bytes[7] = t.m_bytes[3];
-		//
-		//b.m_bytes[9]  = t.m_bytes[13];
-		//b.m_bytes[10] = t.m_bytes[2];
-		//b.m_bytes[11] = t.m_bytes[7];
-		//
-		//b.m_bytes[13] = t.m_bytes[1];
-		//b.m_bytes[14] = t.m_bytes[6];
-		//b.m_bytes[15] = t.m_bytes[11];
-
 		b.get_byte4()[0][1] = t.get_byte4()[1][1];
 		b.get_byte4()[0][2] = t.get_byte4()[2][2];
 		b.get_byte4()[0][3] = t.get_byte4()[3][3];
@@ -768,22 +752,6 @@ private:
 		__Debug_Log();
 
 		block_t t = b;
-
-		//b.m_bytes[1] = t.m_bytes[13];
-		//b.m_bytes[2] = t.m_bytes[10];
-		//b.m_bytes[3] = t.m_bytes[7];
-		//
-		//b.m_bytes[5] = t.m_bytes[1];
-		//b.m_bytes[6] = t.m_bytes[14];
-		//b.m_bytes[7] = t.m_bytes[11];
-		//
-		//b.m_bytes[9] = t.m_bytes[5];
-		//b.m_bytes[10] = t.m_bytes[2];
-		//b.m_bytes[11] = t.m_bytes[15];
-		//
-		//b.m_bytes[13] = t.m_bytes[9];
-		//b.m_bytes[14] = t.m_bytes[6];
-		//b.m_bytes[15] = t.m_bytes[3];
 
 		b.get_byte4()[0][1] = t.get_byte4()[3][1];
 		b.get_byte4()[0][2] = t.get_byte4()[2][2];
