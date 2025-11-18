@@ -7,6 +7,10 @@
 #include <optional>
 #include <cmath>
 #include <cstring>
+#include <iostream>
+#include <string_view>
+#include <future>
+#include <stdexcept>
 
 struct __Debug_Log_Only {
 
@@ -297,10 +301,10 @@ public:
 			return reinterpret_cast<const cbytearray<block_size>*>(m_words);
 		}
 
-		constexpr byte_t& operator[](size_t idx) noexcept {
+		byte_t& operator[](size_t idx) noexcept {
 			return (*get_bytes())[idx];
 		}
-		constexpr byte_t operator[](size_t idx) const noexcept {
+		byte_t operator[](size_t idx) const noexcept {
 			return  (*get_bytes())[idx];
 		}
 
