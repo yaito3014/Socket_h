@@ -554,7 +554,7 @@ public:
 	}
 
 	bool EncryptionSend(const Packet& src) {
-		__Debug_Log(__Debug_ByteView(src));
+		__Debug_Log(__Debug_ByteView(src.GetBuffer()));
 		if (src.CheckHeader()) {
 			return false;
 		}
