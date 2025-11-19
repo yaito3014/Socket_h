@@ -546,14 +546,17 @@ public:
 	}
 
 	bool EncryptionSend(const bytearray& src) {
+		__Debug_Log();
 		bytearray target;
 		return Encrypt(src, target) && Send(target);
 	}
 	bool EncryptionRecv(bytearray& dest) {
+		__Debug_Log();
 		return Recv(dest) && Decrypt(dest, dest);
 	}
 
 	bool EncryptionSend(const Packet& src) {
+		__Debug_Log();
 		if (src.CheckHeader()) {
 			return false;
 		}
@@ -563,6 +566,7 @@ public:
 		return flag && Send(pak);
 	}
 	std::optional<Packet> EncryptionRecv() {
+		__Debug_Log();
 		bytearray head(Packet::HeaderSize);
 		if (!Recv(head)) {
 			return std::nullopt;
