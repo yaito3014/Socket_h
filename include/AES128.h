@@ -36,7 +36,6 @@ struct __Debug_Log_Only {
 template<class C>
 inline std::string __Debug_ByteView(const C& c) {
 	std::ostringstream ret{};
-	ret << "Key: ";
 	for (auto&& b : c) {
 		ret << std::setfill('0') << std::setw(2) << std::hex << std::right << (int)b;
 	}
@@ -46,8 +45,8 @@ inline std::string __Debug_ByteView(const C& c) {
 // #define __Debug_Log(message)
 
 static constexpr size_t _bit_width(uint64_t test) noexcept {
-	constexpr size_t bits = sizeof(size_t) * 8;
-	constexpr size_t testmask = size_t(1) << (bits - 1);
+	size_t bits = sizeof(size_t) * 8;
+	size_t testmask = size_t(1) << (bits - 1);
 	for (size_t i = 1; i < bits; ++i) {
 		if ((test << i) & testmask) {
 			return bits - i;
@@ -271,79 +270,131 @@ public:
 		using int4_t = std::array<uint32_t, 4>;
 		using byte4_t = std::array<byte_t, 4>;
 
-		union {
-			word_t m_words[block_size / sizeof(word_t)];
-			int4_t m_int4;
-			byte4_t m_byte4s[block_size / sizeof(byte4_t)];
-			cbytearray<block_size> m_bytes{};
-		};
-
+		word_t m_words[block_size / sizeof(word_t)]{};
+		
 		void dbg_print() {
-			for (auto b : m_bytes) {
+			for (auto b : ToBytes()) {
 				std::cout << std::setfill('0') << std::setw(2) << std::hex << std::right << (int)b;
 			}
 			std::cout << std::endl;
 		}
 
-		constexpr block_t() noexcept {}
-		constexpr block_t(word_t from) noexcept { m_words[0] = from; }
-		constexpr block_t(const cbytearray<block_size>& from) noexcept : m_bytes(from) {};
-		constexpr block_t(cbytearray<block_size>&& from) noexcept : m_bytes(std::move(from)) {}
-		block_t(const bytearray& from) noexcept { std::memcpy(m_bytes.data(), from.data(), from.size()); }
-		block_t(bytearray&& from) noexcept { std::memcpy(m_bytes.data(), from.data(), from.size()); }
-		constexpr block_t(const block_t&) noexcept = default;
-		constexpr block_t(block_t&&) noexcept = default;
+		cbytearray<block_size> ToBytes() const {
+			cbytearray<block_size> ret{};
+			std::memcpy(ret.data(), m_words, block_size);
+			return ret;
+		}
+		void FromBytes(const cbytearray<block_size>& from) {
+			std::memcpy(m_words, from.data(), block_size);
+		}
+		void FromBytes(const bytearray& from) {
+			size_t copy_size = std::min(from.size(), block_size);
+			std::memset(m_words, 0, block_size);
+			std::memcpy(m_words, from.data(), copy_size);
+		}
+		void SetBytes(size_t idx, byte_t b) {
+			if (idx < block_size) {
+				auto bytes = ToBytes();
+				bytes[idx] = b;
+				FromBytes(bytes);
+			}
+		}
 
-		constexpr block_t& operator=(const block_t&) noexcept = default;
-		constexpr block_t& operator=(block_t&&) noexcept = default;
+		int4_t ToInt4() const {
+			int4_t ret{};
+			std::memcpy(ret.data(), m_words, block_size);
+			return ret;
+		}
+		void FromInt4(const int4_t& from) {
+			std::memcpy(m_words, from.data(), block_size);
+		}
+		void SetInt4(size_t idx, uint32_t i) {
+			if (idx < (block_size / sizeof(uint32_t))) {
+				auto bytes = ToInt4();
+				bytes[idx] = i;
+				FromInt4(bytes);
+			}
+		}
 
-		constexpr bool add_word(word_t* l, word_t r, bool carry) noexcept {
+		std::array<byte4_t, 4> ToByte4x4() const {
+			std::array<byte4_t, 4> ret{};
+			std::memcpy(ret.data(), m_words, block_size);
+			return ret;
+		}
+		void FromByte4x4(const std::array<byte4_t, 4>& from) {
+			std::memcpy(m_words, from.data(), block_size);
+		}
+		void SetByte4x4(size_t idx, const byte4_t& b4) {
+			if (idx < (block_size / sizeof(byte4_t))) {
+				auto bytes = ToByte4x4();
+				bytes[idx] = b4;
+				FromByte4x4(bytes);
+			}
+		}
+		void SetByte4x4(size_t idx1, size_t idx2, byte_t b) {
+			if (idx1 < (block_size / sizeof(byte4_t)) && idx2 < (block_size / sizeof(byte4_t))) {
+				auto bytes = ToByte4x4();
+				bytes[idx1][idx2] = b;
+				FromByte4x4(bytes);
+			}
+		}
+
+		block_t() noexcept {}
+		block_t(word_t from) noexcept { m_words[0] = from; }
+		block_t(const cbytearray<block_size>& from) noexcept { FromBytes(from); }
+		block_t(cbytearray<block_size>&& from) noexcept { FromBytes(from); }
+		block_t(const bytearray& from) noexcept { FromBytes(from); }
+		block_t(bytearray&& from) noexcept { FromBytes(from); }
+		block_t(const block_t&) noexcept = default;
+		block_t(block_t&&) noexcept = default;
+
+		block_t& operator=(const block_t&) noexcept = default;
+		block_t& operator=(block_t&&) noexcept = default;
+
+		bool add_word(word_t* l, word_t r, bool carry) noexcept {
 			word_t left = *l;
 			*l = left + r;
 			return *l < (left < r ? left : r);
 		}
-		constexpr bool sub_word(word_t* l, word_t r, bool borrow) noexcept {
+		bool sub_word(word_t* l, word_t r, bool borrow) noexcept {
 			return add_word(l, ~r, borrow);
 		}
 
-		constexpr byte_t& operator[](size_t idx) noexcept {
-			return m_bytes[idx];
-		}
-		constexpr byte_t operator[](size_t idx) const noexcept {
-			return m_bytes[idx];
+		byte_t operator[](size_t idx) const noexcept {
+			return ToBytes()[idx];
 		}
 
-		constexpr block_t& operator+=(const block_t& other) noexcept {
+		block_t& operator+=(const block_t& other) noexcept {
 			bool carry = add_word(&m_words[0], other.m_words[0], false);
 			add_word(&m_words[1], other.m_words[1], carry);
 			return *this;
 		}
-		constexpr block_t& operator-=(const block_t& other) noexcept {
+		block_t& operator-=(const block_t& other) noexcept {
 			bool borrow = sub_word(&m_words[0], other.m_words[0], true);
 			sub_word(&m_words[1], other.m_words[1], borrow);
 			return *this;
 		}
-		constexpr block_t& operator|=(const block_t& other) noexcept {
+		block_t& operator|=(const block_t& other) noexcept {
 			m_words[0] |= other.m_words[0];
 			m_words[1] |= other.m_words[1];
 			return *this;
 		}
-		constexpr block_t& operator^=(const block_t& other) noexcept {
+		block_t& operator^=(const block_t& other) noexcept {
 			m_words[0] ^= other.m_words[0];
 			m_words[1] ^= other.m_words[1];
 			return *this;
 		}
-		constexpr block_t& operator&=(const block_t& other) noexcept {
+		block_t& operator&=(const block_t& other) noexcept {
 			m_words[0] &= other.m_words[0];
 			m_words[1] &= other.m_words[1];
 			return *this;
 		}
 
-		constexpr friend block_t& operator+(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) += rhs; }
-		constexpr friend block_t& operator-(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) -= rhs; }
-		constexpr friend block_t& operator|(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) |= rhs; }
-		constexpr friend block_t& operator^(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) ^= rhs; }
-		constexpr friend block_t& operator&(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) &= rhs; }
+		friend block_t& operator+(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) += rhs; }
+		friend block_t& operator-(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) -= rhs; }
+		friend block_t& operator|(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) |= rhs; }
+		friend block_t& operator^(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) ^= rhs; }
+		friend block_t& operator&(const block_t& lhs, const block_t& rhs) noexcept { return block_t(lhs) &= rhs; }
 	};
 	using roundkeys = std::array<block_t, 11>;
 
@@ -433,17 +484,16 @@ public:
 		if ((end - sdata) > src.size()) {
 			end = sdata + src.size();
 		}
-		block_t ret{};
-		std::copy(beg, end, ret.m_bytes.begin());
-		return ret;
+		return bytearray{beg, end};
 	}
 	static void BlockAssign(bytearray& target, size_t section, const block_t& src) {
 		__Debug_Log("section: " + std::to_string(section));
-		auto beg = src.m_bytes.begin();
-		auto end = src.m_bytes.end();
+		auto ba = src.ToBytes();
+		auto beg = ba.begin();
+		auto end = ba.end();
 		auto left = target.size() - (section * block_size);
 		if (left < block_size) {
-			end = src.m_bytes.begin() + left;
+			end = ba.begin() + left;
 		}
 		std::copy(beg, end, target.begin() + (section * block_size));
 	}
@@ -729,13 +779,13 @@ private:
 		__Debug_Log("");
 
 		for (size_t i = 0; i < block_size; ++i) {
-			b[i] = SBox[b[i]];
+			b.SetBytes(i, SBox[b[i]]);
 		}
 	}
 	static void invsubbytes(block_t& b) noexcept {
 		__Debug_Log("");
 		for (size_t i = 0; i < block_size; ++i) {
-			b[i] = InvSBox[b[i]];
+			b.SetBytes(i, InvSBox[b[i]]);
 		}
 	}
 	static void shiftrows(block_t& b) noexcept {
@@ -743,44 +793,44 @@ private:
 
 		block_t t = b;
 
-		b.m_byte4s[0][1] = t.m_byte4s[1][1];
-		b.m_byte4s[0][2] = t.m_byte4s[2][2];
-		b.m_byte4s[0][3] = t.m_byte4s[3][3];
+		b.SetByte4x4(0, 1, t.ToByte4x4()[1][1]);
+		b.SetByte4x4(0, 2, t.ToByte4x4()[2][2]);
+		b.SetByte4x4(0, 3, t.ToByte4x4()[3][3]);
 		
-		b.m_byte4s[1][1] = t.m_byte4s[2][1];
-		b.m_byte4s[1][2] = t.m_byte4s[3][2];
-		b.m_byte4s[1][3] = t.m_byte4s[0][3];
+		b.SetByte4x4(1, 1, t.ToByte4x4()[2][1]);
+		b.SetByte4x4(1, 2, t.ToByte4x4()[3][2]);
+		b.SetByte4x4(1, 3, t.ToByte4x4()[0][3]);
 		
-		b.m_byte4s[2][1] = t.m_byte4s[3][1];
-		b.m_byte4s[2][2] = t.m_byte4s[0][2];
-		b.m_byte4s[2][3] = t.m_byte4s[1][3];
+		b.SetByte4x4(2, 1, t.ToByte4x4()[3][1]);
+		b.SetByte4x4(2, 2, t.ToByte4x4()[0][2]);
+		b.SetByte4x4(2, 3, t.ToByte4x4()[1][3]);
 		
-		b.m_byte4s[3][1] = t.m_byte4s[0][1];
-		b.m_byte4s[3][2] = t.m_byte4s[1][2];
-		b.m_byte4s[3][3] = t.m_byte4s[2][3];
+		b.SetByte4x4(3, 1, t.ToByte4x4()[0][1]);
+		b.SetByte4x4(3, 2, t.ToByte4x4()[1][2]);
+		b.SetByte4x4(3, 3, t.ToByte4x4()[2][3]);
 	}
 	static void invshiftrows(block_t& b) noexcept {
 		__Debug_Log("");
 
 		block_t t = b;
 
-		b.m_byte4s[0][1] = t.m_byte4s[3][1];
-		b.m_byte4s[0][2] = t.m_byte4s[2][2];
-		b.m_byte4s[0][3] = t.m_byte4s[1][3];
+		b.SetByte4x4(0, 1, t.ToByte4x4()[3][1]);
+		b.SetByte4x4(0, 2, t.ToByte4x4()[2][2]);
+		b.SetByte4x4(0, 3, t.ToByte4x4()[1][3]);
 		
-		b.m_byte4s[1][1] = t.m_byte4s[0][1];
-		b.m_byte4s[1][2] = t.m_byte4s[3][2];
-		b.m_byte4s[1][3] = t.m_byte4s[2][3];
+		b.SetByte4x4(1, 1, t.ToByte4x4()[0][1]);
+		b.SetByte4x4(1, 2, t.ToByte4x4()[3][2]);
+		b.SetByte4x4(1, 3, t.ToByte4x4()[2][3]);
 		
-		b.m_byte4s[2][1] = t.m_byte4s[1][1];
-		b.m_byte4s[2][2] = t.m_byte4s[0][2];
-		b.m_byte4s[2][3] = t.m_byte4s[3][3];
+		b.SetByte4x4(2, 1, t.ToByte4x4()[1][1]);
+		b.SetByte4x4(2, 2, t.ToByte4x4()[0][2]);
+		b.SetByte4x4(2, 3, t.ToByte4x4()[3][3]);
 		
-		b.m_byte4s[3][1] = t.m_byte4s[2][1];
-		b.m_byte4s[3][2] = t.m_byte4s[1][2];
-		b.m_byte4s[3][3] = t.m_byte4s[0][3];
+		b.SetByte4x4(3, 1, t.ToByte4x4()[2][1]);
+		b.SetByte4x4(3, 2, t.ToByte4x4()[1][2]);
+		b.SetByte4x4(3, 3, t.ToByte4x4()[0][3]);
 	}
-	static void mixcolumn(typename block_t::byte4_t& r, uint32_t& dest) noexcept {
+	static void mixcolumn(const typename block_t::byte4_t& r, uint32_t& dest) noexcept {
 		__Debug_Log("");
 
 		dest = ColumnTable[0][r[0]] ^ ColumnTable[1][r[1]] ^ ColumnTable[2][r[2]] ^ ColumnTable[3][r[3]];
@@ -788,12 +838,14 @@ private:
 	static void mixcolumns(block_t& b) noexcept {
 		__Debug_Log("");
 
-		constexpr size_t loop = sizeof(block_t::byte4_t) / sizeof(byte_t);
+		size_t loop = sizeof(block_t::byte4_t) / sizeof(byte_t);
 		for (size_t i = 0; i < loop; ++i) {
-			mixcolumn(b.m_byte4s[i], b.m_int4[i]);
+			uint32_t _i = 0;
+			mixcolumn(b.ToByte4x4()[i], _i);
+			b.SetInt4(i, _i);
 		}
 	}
-	static void invmixcolumn(typename block_t::byte4_t& r, uint32_t& dest)noexcept {
+	static void invmixcolumn(const typename block_t::byte4_t& r, uint32_t& dest)noexcept {
 		__Debug_Log("");
 		
 		dest = InvColumnTable[0][r[0]] ^ InvColumnTable[1][r[1]] ^ InvColumnTable[2][r[2]] ^ InvColumnTable[3][r[3]];
@@ -801,9 +853,11 @@ private:
 	static void invmixcolumns(block_t& b)noexcept {
 		__Debug_Log("");
 		
-		constexpr size_t loop = sizeof(block_t::byte4_t) / sizeof(byte_t);
+		size_t loop = sizeof(block_t::byte4_t) / sizeof(byte_t);
 		for (size_t i = 0; i < loop; ++i) {
-			invmixcolumn(b.m_byte4s[i], b.m_int4[i]);
+			uint32_t _i = 0;
+			invmixcolumn(b.ToByte4x4()[i], _i);
+			b.SetInt4(i, _i);
 		}
 	}
 	static void addroundkey(block_t& s, const block_t& rk)noexcept {
@@ -827,19 +881,19 @@ private:
 	static roundkeys _KeyExpansion(const block_t& key) noexcept {
 		__Debug_Log("");
 		
-		constexpr size_t startwords = block_size / sizeof(uint32_t);
+		size_t startwords = block_size / sizeof(uint32_t);
 		roundkeys rk{};
 		rk[0] = key;
 		size_t wordgenerated = startwords;
 		size_t rconiter = 1;
 
-		constexpr size_t itercount = (sizeof(roundkeys) / sizeof(uint32_t));
+		size_t itercount = (sizeof(roundkeys) / sizeof(uint32_t));
 
 		while (wordgenerated < itercount) {
-			constexpr size_t mask = (sizeof(uint32_t) - 1);
+			size_t mask = (sizeof(uint32_t) - 1);
 			size_t shift = _bit_width(sizeof(uint32_t) - 1);
 			size_t shifted = wordgenerated >> shift;
-			uint32_t temp = rk[(wordgenerated - 1) >> shift].m_int4[(wordgenerated - 1) & mask];
+			uint32_t temp = rk[(wordgenerated - 1) >> shift].ToInt4()[(wordgenerated - 1) & mask];
 
 			if ((wordgenerated & mask) == 0) {
 				rotword(temp);
@@ -848,7 +902,7 @@ private:
 				//temp &= (temp ^ RCon[rconiter++] << 24) | ((1 << 24) - 1);
 			}
 
-			rk[shifted].m_int4[wordgenerated & mask] = rk[shifted - 1].m_int4[wordgenerated & mask] ^ temp;
+			rk[shifted].SetInt4(wordgenerated & mask, rk[shifted - 1].ToInt4()[wordgenerated & mask] ^ temp);
 			++wordgenerated;
 		}
 
