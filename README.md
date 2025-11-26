@@ -1,4 +1,4 @@
-﻿# Socket
+# Socket
 
 クロスプラットフォームなソケット通信ライブラリです。
 サブ機能としてAESによる暗号化や、データ型の変換を担うPacket構造体なんかがあったりします。
@@ -12,7 +12,7 @@
 - IPv4とIPv6に対応
 - 非同期通信 ( 先頭にASyncが付いてるもの )
 - AES128の暗号化 ( デフォルトでCTRを使う )
-- AESはシングルで数100MB/s、並列で500~700MB/sの性能 ( 要最適化ビルド )
+- AESはシングルで数100MB/s、並列で500~900MB/sの性能 ( 要最適化ビルド )
 - Packet構造体によるスマートなデータ型とバイト列の相互変換
 
 # How to use
@@ -35,7 +35,7 @@ Visual Studio 2026 insider Edition
 # Credit
 
 - Apopic ( by https://github.com/apopic )
-- Kernel ( by https://x.com/kernel_vr )
+- Kernel ( by https://github.com/KernelVR )
 - ChatGPT ( by OpenAI )
 
 # TODO:
