@@ -141,11 +141,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\AES128.h" />
+    <ClInclude Include="include\common.h" />
     <ClInclude Include="include\ECDSA.h" />
     <ClInclude Include="include\ModInt.h" />
     <ClInclude Include="include\MultiWordInt.h" />
     <ClInclude Include="include\Packet.h" />
     <ClInclude Include="include\Socket.h" />
+    <ClInclude Include="module\Socket.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="docs\Overview.md" />
