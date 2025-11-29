@@ -99,6 +99,8 @@ import Socket;
 
 int main(int argc, char* argv[]) {
 	
+	TestExport();
+
 	// arg[1]{ 0 = server, 1 = client }
 
 	AES128 engine;

@@ -72,18 +72,7 @@ public:
 
 #endif
 
-import :enums;
 
-export {
-	
-	enum class IPVersion;
-	enum class Protocol;
-	
-	
+export void TestExport();
 
-
-
-
-
-	
-}
+export import :testpart;
