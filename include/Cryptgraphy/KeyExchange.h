@@ -2,8 +2,7 @@
 
 #include "MultiWordInt.h"
 
-
-class KeyExchange {
+class KeyFactoryDH {
 public:
 
 	using baselenint_t = bigint<32>;
@@ -14,7 +13,7 @@ public:
 	static inline std::random_device rd;
 	static inline std::mt19937 gen;
 
-	KeyExchange() {
+	KeyFactoryDH() {
 		do {
 			GenerateTempSecretKey();
 		} while (SecretKey >= P || SecretKey <= 2);
@@ -62,3 +61,9 @@ public:
 	int_t SecretKey = 0;
 };
 
+class KeyFactoryECDH {
+private:
+
+
+
+};

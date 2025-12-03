@@ -1,33 +1,14 @@
 ﻿#pragma once
 #include "common.h"
 
-class bigint_exception {
-
-	static inline const std::string ExceptionPrefix = "bigint: ";
-
-	static std::string setmsg(std::string str) {
-		return (ExceptionPrefix + str);
-	}
-
-public:
-
-	static std::exception DivisionByZero() {
-		return std::exception(setmsg("Division by zero").c_str());
-	}
-
-	static std::exception InvalidBase() {
-		return std::exception(setmsg("Invalid base").c_str());
-	}
-};
-
 template<size_t _words, bool _sign = false>
 struct bigint {
 
 	using count_t = size_t;
-	using word_t = uint_fast64_t;
-	using sword_t = int_fast64_t;
+	using word_t = uint64_t;
+	using sword_t = int64_t;
 	using diff_t = int64_t;
-	using halfword_t = uint_fast32_t;
+	using halfword_t = uint32_t;
 
 	static constexpr bool IsSigned = _sign;
 	static constexpr count_t Words = _words;
@@ -112,8 +93,6 @@ struct bigint {
 	constexpr friend bigint operator/(bigint lhs, const bigint& rhs) { return lhs /= rhs; }
 	constexpr friend bigint operator%(bigint lhs, const bigint& rhs) { return lhs %= rhs; }
 
-
-
 	/// Mathematical Module
 
 	constexpr bigint& Negate() {
@@ -176,7 +155,6 @@ struct bigint {
 		return result;
 	}
 	
-
 	/// Utility Module
 
 	constexpr bool BitCheck(count_t idx) const {
@@ -314,9 +292,8 @@ struct bigint {
 		return *this;
 	}
 	constexpr std::pair<bigint&, bigint> AssignDivMod(bigint src) {
-		if (src == 0) {
-			throw bigint_exception::DivisionByZero();
-		}
+		
+		assert(src != 0 && "Division by Zero");
 
 		bigint rem = *this;
 		*this = 0;
@@ -457,6 +434,9 @@ struct bigint {
 		return ret;
 	}
 	static constexpr bigint Parse(std::string_view text, int base = 16) {
+		
+		assert((base >= 2 && base <= 36) && "Invalid base");
+
 		auto proc = text.substr(0, text.find_first_not_of("0123456789abcdefghijkmnlopqrstuvwxyzABCDEFGHIJKMNLOPQRSTUVWXYZ"));
 		auto it = proc.rbegin();
 		auto end = proc.rend();
@@ -561,9 +541,7 @@ struct bigint {
 	constexpr std::string ToString(int base = 10, bool upper = true, bool padding = false) const {
 		constexpr std::string_view list = "0123456789abcdefghijkmnlopqrstuvwxyz";
 		
-		if (base < 2 && base > 36) {
-			throw bigint_exception::InvalidBase();
-		}
+		assert((base >= 2 && base <= 36) && "Invalid base");
 
 		word_t word_digits = (word_t)(WordBits / std::log2(base));
 		bigint word_base = bigint(base).Pow(word_digits);
