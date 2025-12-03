@@ -96,71 +96,30 @@ struct ContainerInVariable {
 };
 
 #include "include/Cryptgraphy/ECDSA.h"
+#include "include/Cryptgraphy/KeyExchange.h"
 
 int main(int argc, char* argv[]) {
 	
-	//KeyExchange Keya;
-	//KeyExchange Keyb;
-	//
-	//auto tp = std::chrono::high_resolution_clock::now();
-	//
-	//auto kE = Keya.GeneratePublicKey();
-	//auto kF = Keyb.GeneratePublicKey();
-	//
-	//auto Ga = Keya.MakeSharedKey(kF);
-	//auto Gb = Keyb.MakeSharedKey(kE);
-	//
-	//auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - tp).count();
-	//
-	//bool same = Ga == Gb;
-	//
-	//std::cout << (double)ns / 1000 / 1000 / 1000 << "s" << std::endl;
-	//std::cout << std::boolalpha << "shared key same: " << same << std::endl;
-
-	using int_t = bigint<8 + 1>;
-	using modint_t = ModInt<int_t>;
+	KeyFactoryDH Keya;
+	KeyFactoryDH Keyb;
 	
-	int_t p = "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff";
-
-	modint_t::Factory xmodp(p);
-	WeierstrassParameter<modint_t> param = {
-		xmodp(int_t{"ffffffff00000001000000000000000000000000fffffffffffffffffffffffc"}),
-		xmodp(int_t{"5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b"})
-	};
-
-	ECAfinPoint<modint_t, modint_t>::Factory afinpoint(param);
-
-	auto G1 = afinpoint(
-		xmodp(int_t{"6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"}),
-		xmodp(int_t{"4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5"})
-	);
-	auto G2 = G1.Double();
-
+	auto tp = std::chrono::high_resolution_clock::now();
 	
-	std::cout << "p: {" << p.ToString(16) << "}" << std::endl;
-	std::cout << "a: {" << param.a.value.ToString(16) << "}" << std::endl;
-	std::cout << "b: {" << param.b.value.ToString(16) << "}" << std::endl;
+	auto kE = Keya.GeneratePublicKey();
+	auto kF = Keyb.GeneratePublicKey();
+	
+	auto Ga = Keya.MakeSharedKey(kF);
+	auto Gb = Keyb.MakeSharedKey(kE);
+	
+	auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - tp).count();
+	
+	bool same = Ga == Gb;
+	
+	std::cout << (double)ns / 1000 / 1000 / 1000 << "s" << std::endl;
+	std::cout << std::boolalpha << "shared key same: " << same << std::endl;
 
-	std::cout << "G1: {" << G1.x.value.ToString(16) << ", " << G1.y.value.ToString(16) << "}" << std::endl;
-	std::cout << "G2: {" << G2.x.value.ToString(16) << ", " << G2.y.value.ToString(16) << "}" << std::endl;
-
-	std::cout << "Check G1: " << std::boolalpha << param.CheckPoint(G1.x, G1.y) << std::endl;
-	std::cout << "Check G2: " << std::boolalpha << param.CheckPoint(G2.x, G2.y) << std::endl;
-
-	auto d = G1.Double();
-
-	std::cout << "Check double: " << std::boolalpha << param.CheckPoint(d.x, d.y) << std::endl;
-	std::cout << "double: {" << d.x.value.ToString(16) << ", " << d.y.value.ToString(16) << "}" << std::endl;
-
-	auto add = G1.Add(G2);
-
-	std::cout << "Check add: " << std::boolalpha << param.CheckPoint(add.x, add.y) << std::endl;
-	std::cout << "add: {" << add.x.value.ToString(16) << ", " << add.y.value.ToString(16) << "}" << std::endl;
-
-	auto s = G1.Scaler(xmodp(16));
-
-	std::cout << "Check scaler: " << std::boolalpha << param.CheckPoint(s.x, s.y) << std::endl;
-	std::cout << "scaler: {" << s.x.value.ToString(16) << ", " << s.y.value.ToString(16) << "}" << std::endl;
+	std::cout << "Ga: " << Ga.ToString(16) << std::endl;
+	std::cout << "Gb: " << Gb.ToString(16) << std::endl;
 
 	// arg[1]{ 0 = server, 1 = client }
 

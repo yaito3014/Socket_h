@@ -3,7 +3,6 @@
 
 template<size_t _words, bool _sign = false>
 struct bigint {
-
 	using count_t = size_t;
 	using word_t = uint64_t;
 	using sword_t = int64_t;
@@ -25,12 +24,24 @@ struct bigint {
 	using signed_t = bigint<Words, true>;
 	using unsigned_t = bigint<Words, false>;
 
-
 	/// Constructor
 
 	constexpr bigint() noexcept {}
 	constexpr bigint(const bigint& from) noexcept { *m_words = *from.m_words; }
 	constexpr bigint(bigint&& from) noexcept : m_words(nullptr) { m_words = from.m_words; }
+	template<count_t fromwords, bool fromsigned>
+	constexpr bigint(const bigint<fromwords, fromsigned>& from) noexcept {
+		const count_t copywords = (fromwords < Words) ? fromwords : Words;
+		std::copy_n(from.words().begin(), copywords, words().begin());
+		if constexpr (fromwords < Words) {
+			std::fill_n(words().begin() + copywords, Words - fromwords, 0);
+		}
+		if constexpr (IsSigned && fromsigned) {
+			if (from.IsNegative()) {
+				Negate();
+			}
+		}
+	}
 	constexpr bigint(word_t from) noexcept requires(!IsSigned) { words()[0] = from; }
 	constexpr bigint(sword_t from) noexcept requires(IsSigned) {
 		if (from < 0) {
@@ -53,6 +64,7 @@ struct bigint {
 	}
 	template<std::ranges::contiguous_range R>
 	constexpr bigint(const R& arr) {
+		using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
 		constexpr count_t totalbytes = WordBytes;
 		const count_t copycount = (arr.size() * sizeof(T) < totalbytes) ? arr.size() : totalbytes / sizeof(T);
 		std::fill(words().begin(), words().end(), 0);
@@ -321,8 +333,6 @@ struct bigint {
 		return *this = std::move(AssignDivMod(src).second);
 	}
 
-
-
 	/// Logical Module
 
 	constexpr int Compare(const bigint& src) const {
@@ -382,9 +392,8 @@ struct bigint {
 	constexpr bigint& operator--() { return AssignSub(1); }
 	constexpr bigint operator--(int) { auto ret = *this; AssignSub(1); return ret; }
 
-
-
 	/// IO Module
+	
 	static constexpr char ToUpper(char c) {
 		return ('a' <= c && c <= 'z') ?
 			(c - ('a' - 'A')) :
@@ -614,8 +623,6 @@ struct bigint {
 	}
 #endif
 
-private:
-
 	/// Internal Resource
 
 	constexpr arr_t& words() { return *m_words; }
@@ -636,6 +643,8 @@ private:
 		words = m_words->data();
 		return *bits;
 	}
+
+private:
 
 	arr_t* m_words = new arr_t();
 };

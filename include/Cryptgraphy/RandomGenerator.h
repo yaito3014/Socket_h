@@ -26,7 +26,8 @@ public:
 		
 			uint32_t val = gen();
 			std::memcpy(std::to_address(it), &val, write);
-		} while (ret.size() == size);
+			it += write;
+		} while (it != end);
 
 		return ret;
 	}

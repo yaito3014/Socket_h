@@ -19,11 +19,11 @@ public:
 	}
 
 	[[nodiscard]]
-	int_t GeneratePublicKey() const {
+	baselenint_t GeneratePublicKey() const {
 		return X.Pow(SecretKey).value;
 	}
 
-	int_t MakeSharedKey(const int_t& pubkey) const {
+	baselenint_t MakeSharedKey(const int_t& pubkey) const {
 		return xmodp(pubkey).Pow(SecretKey).value;
 	}
 
