@@ -1,8 +1,10 @@
 #pragma once
 #include "ModInt.h"
+#include "ECPoint.h"
 
-// TODO: impl
+class ECDSA {
 
-struct {
+
+
 
 };

@@ -1,6 +1,4 @@
-﻿#ifndef __MULTIBYTEINT_V2_H
-#define __MULTIBYTEINT_V2_H
-
+﻿#pragma once
 #include <algorithm>
 #include <exception>
 #include <cstdint>
@@ -86,7 +84,13 @@ struct bigint {
 		}
 		*this = bigint(ret);
 	}
-	constexpr explicit bigint(std::string_view text) {
+	template<class T> requires (std::is_trivially_copyable_v<T>)
+	constexpr explicit bigint(std::span<const T> arr) {
+		constexpr count_t totalbytes = Words * WordByte;
+		const count_t copycount = (arr.size() * sizeof(T) < totalbytes) ? arr.size() : totalbytes / sizeof(T);
+		std::fill(words().begin(), words().end(), 0);
+		std::memcpy(words().data(), arr.data(), copycount * sizeof(T));
+	}	constexpr explicit bigint(std::string_view text) {
 		*this = Parse(text);
 	}
 	template<count_t inputlength>
@@ -128,9 +132,8 @@ struct bigint {
 	constexpr bigint& Negate() {
 		return this->AssignNot().AssignAdd(1);
 	}
-	constexpr bigint operator-() const {
-		return bigint(*this).Negate();
-	}
+	constexpr bigint operator-() const { return bigint(*this).Negate(); }
+	constexpr bigint operator+() const { return *this; }
 	constexpr bigint Abs() const {
 		return *this;
 	}
@@ -226,24 +229,17 @@ struct bigint {
 	constexpr operator signed_t&() requires(IsSigned) {
 		return *(signed_t*)(this);
 	}
-	constexpr operator unsigned_t&() requires(!IsSigned) {
+	constexpr operator unsigned_t& () requires(!IsSigned) {
 		return *(unsigned_t*)(this);
 	}
-	constexpr bool AddOutCheck(const bigint& src) const {
-		return (this->GetNBit() == AllBits && src.GetNBit() > 0);
-	}
-	constexpr bool MulOutCheck(const bigint& src) const {
-		return (this->GetNBit() + src.GetNBit() > AllBits);
-	}
-	
-
 
 	/// Arithmetic Module
 	
 	static constexpr bool AddBase(word_t *dest, word_t src, bool carry)  {
-		word_t max = *dest > src ? *dest : src;
-		*dest += src + carry;
-		return *dest < max;
+		word_t a = *dest;
+		word_t b = src + static_cast<word_t>(carry);
+		*dest += b;
+		return (b < src) || (*dest < a);
 	}
 	constexpr bigint& AssignAdd(const bigint& src) {
 		bool carry = false;
@@ -513,7 +509,7 @@ struct bigint {
 			std::string temp = WordToString(w, 16);
 			
 			std::reverse(temp.begin(), temp.end());
-			temp += std::string(WordCharSize - 1 - temp.size(), '0');
+			temp += std::string(WordCharSize - temp.size(), '0');
 
 			ret += temp;
 		}
@@ -616,7 +612,7 @@ struct bigint {
 			word_t mod = (word_t)rem.AssignDivMod(word_base).second;
 
 			std::string temp = WordToString(mod, base);
-			
+
 			std::reverse(temp.begin(), temp.end());
 			temp += std::string(word_digits - temp.size(), '0');
 
@@ -678,5 +674,3 @@ private:
 
 	arr_t* m_words = new arr_t();
 };
-
-#endif // __MULTIBYTEINT_V2_H
