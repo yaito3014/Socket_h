@@ -6,16 +6,19 @@
 
 template<IntegralSet T>
 struct ModInt {
-private:
-	constexpr ModInt(const T* p) : P(p) {}
-public:
 
 	constexpr ModInt() : value(0), P(SafeMax()) {}
+	constexpr ModInt(const T* p) : P(p) {}
 
 	class Factory {
 	public:
 
 		constexpr Factory(const T& p) : ptr(&p) {}
+		
+		constexpr Factory(T&& p) { ptr = new T(std::move(p)); }
+
+		template<class... Args>
+		constexpr Factory(Args&&... args) { ptr = new T(std::forward<Args>(args)...); }
 
 		constexpr ModInt operator()() const {
 			return ModInt(ptr);
@@ -25,6 +28,14 @@ public:
 		constexpr ModInt operator()(Tv&& v) const {
 			ModInt ret(ptr);
 			ret.value = std::forward<Tv>(v);
+			ret.value %= ret.GetP();
+			return ret;
+		}
+
+		template<class... Args>
+		constexpr ModInt Make(Args&&... args) const {
+			ModInt ret(ptr);
+			ret.value = T(std::forward<Args>(args)...);
 			ret.value %= ret.GetP();
 			return ret;
 		}

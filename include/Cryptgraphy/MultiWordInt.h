@@ -51,9 +51,9 @@ struct bigint {
 		}
 		*this = bigint(ret);
 	}
-	template<class T> requires (std::is_trivially_copyable_v<T>)
-	constexpr explicit bigint(std::span<const T> arr) {
-		constexpr count_t totalbytes = Words * WordByte;
+	template<std::ranges::contiguous_range R>
+	constexpr bigint(const R& arr) {
+		constexpr count_t totalbytes = WordBytes;
 		const count_t copycount = (arr.size() * sizeof(T) < totalbytes) ? arr.size() : totalbytes / sizeof(T);
 		std::fill(words().begin(), words().end(), 0);
 		std::memcpy(words().data(), arr.data(), copycount * sizeof(T));
