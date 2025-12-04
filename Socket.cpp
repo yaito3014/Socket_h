@@ -94,14 +94,12 @@ struct ContainerInVariable {
 		return view;
 	}
 };
-
-#include "include/Cryptgraphy/ECDSA.h"
-#include "include/Cryptgraphy/KeyExchange.h"
+#include "include/KeyExchange.h"
 
 int main(int argc, char* argv[]) {
 	
-	KeyFactoryDH Keya;
-	KeyFactoryDH Keyb;
+	KeyFactoryECDH Keya;
+	KeyFactoryECDH Keyb;
 	
 	auto tp = std::chrono::high_resolution_clock::now();
 	
@@ -117,9 +115,61 @@ int main(int argc, char* argv[]) {
 	
 	std::cout << (double)ns / 1000 / 1000 / 1000 << "s" << std::endl;
 	std::cout << std::boolalpha << "shared key same: " << same << std::endl;
+	
+	for (auto&& b : Ga) {
+		std::cout << std::hex << std::setw(2) << std::setfill('0') << std::right << (int)b;
+	}
+	std::cout << std::endl;
+	
+	for (auto&& b : Gb) {
+		std::cout << std::hex << std::setw(2) << std::setfill('0') << std::right << (int)b;
+	}
+	std::cout << std::endl;
 
-	std::cout << "Ga: " << Ga.ToString(16) << std::endl;
-	std::cout << "Gb: " << Gb.ToString(16) << std::endl;
+	//using int_t = bigint<8>;
+	//using modint_t = ModInt<int_t>;
+	//using project_t = ECProject<modint_t>;
+	//
+	//modint_t::Factory xmodp = "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff";
+	//project_t::Factory project = WeierstrassParameter<modint_t>(
+	//	xmodp("ffffffff00000001000000000000000000000000fffffffffffffffffffffffc"),
+	//	xmodp("5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b")
+	//);
+	//
+	//auto G = project(
+	//	xmodp("6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"),
+	//	xmodp("4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5"),
+	//	xmodp(1)
+	//);
+	//
+	//auto view = [](const std::string& name, const project_t& p) {
+	//	std::cout << name << ": {"
+	//		<< p.x.value.ToString(16) << ", "
+	//		<< p.y.value.ToString(16) << ", "
+	//		<< p.z.value.ToString(16) << "}"
+	//		<< std::endl;
+	//};
+	//auto check = [](const project_t& p) {
+	//	auto a = p.ToAfinPoint();
+	//	std::cout << "Check: " << std::boolalpha
+	//		<< a.GetParam().CheckPoint(a.x, a.y)
+	//		<< std::endl;
+	//};
+	//
+	//auto d = G.Double();
+	//
+	//view("double", d);
+	//check(d);
+	//
+	//auto add = G.Add(d);
+	//
+	//view("add", add);
+	//check(add);
+	//
+	//auto scaler = G.Scaler(xmodp(100));
+	//
+	//view("scaler", scaler);
+	//check(scaler);
 
 	// arg[1]{ 0 = server, 1 = client }
 

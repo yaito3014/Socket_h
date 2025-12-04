@@ -28,7 +28,7 @@ struct bigint {
 
 	constexpr bigint() noexcept {}
 	constexpr bigint(const bigint& from) noexcept { *m_words = *from.m_words; }
-	constexpr bigint(bigint&& from) noexcept : m_words(nullptr) { m_words = from.m_words; }
+	constexpr bigint(bigint&& from) noexcept : m_words(nullptr) { m_words = from.m_words; from.m_words = nullptr; }
 	template<count_t fromwords, bool fromsigned>
 	constexpr bigint(const bigint<fromwords, fromsigned>& from) noexcept {
 		const count_t copywords = (fromwords < Words) ? fromwords : Words;

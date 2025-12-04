@@ -59,7 +59,7 @@
     <ClInclude Include="module\Socket.ixx">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="include\Cryptgraphy\KeyExchange.h">
+    <ClInclude Include="include\KeyExchange.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="include\Cryptgraphy\ECPoint.h">

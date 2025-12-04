@@ -24,7 +24,7 @@ struct ModInt {
 			return ModInt(ptr);
 		}
 		template<class Tv>
-			requires std::convertible_to<std::decay_t<Tv>, T>
+			requires std::convertible_to<Tv, T>
 		constexpr ModInt operator()(Tv&& v) const {
 			ModInt ret(ptr);
 			ret.value = std::forward<Tv>(v);
@@ -40,6 +40,10 @@ struct ModInt {
 			return ret;
 		}
 
+		constexpr const T& P() const {
+			return *ptr;
+		}
+
 	private:
 		const T* ptr{};
 	};
@@ -51,7 +55,7 @@ struct ModInt {
 	constexpr ModInt& operator=(ModInt&&) = default;
 
 	constexpr ModInt& operator=(const T& from) { value = from % GetP(); return *this; }
-	constexpr ModInt& operator=(T&& from) { value = std::move(from); value %= GetP(); return *this; }
+	constexpr ModInt& operator=(T&& from) { value = from % GetP(); return *this; }
 	constexpr ModInt Pow(T n) const {
 		Factory make(GetP());
 		ModInt base = make(value);
@@ -66,16 +70,58 @@ struct ModInt {
 
 		return ret;
 	}
+	constexpr ModInt Sqrt() const {
+		Factory make(GetP());
+		if (Pow((GetP() - 1) >> 1) != make(1)) {
+			return make(0);
+		}
+		ModInt q = make(GetP() - 1);
+		ModInt m = 0;
+		while ((q & 1) == make(0)) {
+			q >>= 1;
+			m += make(1);
+		}
+		ModInt z = this->Pow(q.value);
+		do {
+			z = z.Pow(2);
+		} while (z.Pow((GetP() - 1) >> 1) != make(1));
+		ModInt c = z.Pow(q.value);
+		ModInt t = this->Pow(q.value);
+		ModInt r = this->Pow(((q + 1) >> 1).value);
+		if (t == make(0)) {
+			return make(0);
+		}
+		m -= make(2);
+		while (t != make(1)) {
+			while (t.Pow(make(2).Pow(m.value).value) == make(1)) {
+				c = c.Pow(2);
+				m -= make(1);
+			}
+			r *= c;
+			c *= c;
+			t *= c;
+			m -= make(1);
+		}
+		return r;
+	}
 	constexpr ModInt FermerInv() const {
 		return Pow(GetP() - 2);
 	}
 
+	constexpr bool CheckP(const ModInt& from) const {
+		return P == from.P;
+	}
+	
 	constexpr ModInt& operator+=(const ModInt& rhs) {
+		if (!CheckP(rhs)) { return *this; }
 		value += rhs.value;
-		value %= GetP();
+		if (value >= GetP()) {
+			value %= GetP();
+		}
 		return *this;
 	}
 	constexpr ModInt& operator-=(const ModInt& rhs) {
+		if (!CheckP(rhs)) { return *this; }
 		bool neg = value < rhs.value;
 		value -= rhs.value;
 		if (neg) {
@@ -85,16 +131,20 @@ struct ModInt {
 		return *this;
 	}
 	constexpr ModInt& operator*=(const ModInt& rhs) {
+		if (!CheckP(rhs)) { return *this; }
 		value *= rhs.value;
-		value %= GetP();
+		if (value >= GetP()) {
+			value %= GetP();
+		}
 		return *this;
 	}
 	constexpr ModInt& operator/=(const ModInt& rhs) {
+		if (!CheckP(rhs)) { return *this; }
 		*this *= rhs.FermerInv();
-		value %= GetP();
 		return *this;
 	}
 	constexpr ModInt& operator%=(const ModInt& rhs) {
+		if (!CheckP(rhs)) { return *this; }
 		value %= rhs.value;
 		return *this;
 	}
