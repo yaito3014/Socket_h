@@ -126,46 +126,54 @@ int main(int argc, char* argv[]) {
 	//}
 	//std::cout << std::endl;
 
-	std::string message = "0123456789abcdef";
-	Cryptgraphy::bytearray data{message.begin(), message.end()};
+	KeyManager Key;
+	std::string message = "i'm barrier.";
+	auto v = ECDSA::Sign(Key.GetSecretKey(), {message.begin(), message.end()});
 
-	auto tp = std::chrono::high_resolution_clock::now();
+	bool ret = ECDSA::Verify(v, {message.begin(), message.end()});
 
-	auto ret = SHAKE256::HasherN(data, 64);
-	
-	auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - tp).count();
+	std::cout << std::boolalpha << ret;
 
-	std::cout << (double)ns / 1000 / 1000 << "ms" << std::endl;
-	std::cout << std::boolalpha << "hash: ";
-
-	for (auto&& c : ret) {
-		std::cout << std::hex << std::right << std::setw(2) << std::setfill('0') << (int)c;
-	}
+	//std::string message = "0123456789abcdef";
+	//Cryptgraphy::bytearray data{message.begin(), message.end()};
+	//
+	//auto tp = std::chrono::high_resolution_clock::now();
+	//
+	//auto ret = SHAKE256::HasherN(data, 64);
+	//
+	//auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - tp).count();
+	//
+	//std::cout << (double)ns / 1000 / 1000 << "ms" << std::endl;
+	//std::cout << std::boolalpha << "hash: ";
+	//
+	//for (auto&& c : ret) {
+	//	std::cout << std::hex << std::right << std::setw(2) << std::setfill('0') << (int)c;
+	//}
 
 	//using int_t = bigint<8>;
 	//using modint_t = ModInt<int_t>;
-	//using project_t = ECProject<modint_t>;
+	//using projective_t = ECProject<modint_t>;
 	//
 	//modint_t::Factory xmodp = "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff";
-	//project_t::Factory project = WeierstrassParameter<modint_t>(
+	//projective_t::Factory projective = WeierstrassParameter<modint_t>(
 	//	xmodp("ffffffff00000001000000000000000000000000fffffffffffffffffffffffc"),
 	//	xmodp("5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b")
 	//);
 	//
-	//auto G = project(
+	//auto G = projective(
 	//	xmodp("6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"),
 	//	xmodp("4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5"),
 	//	xmodp(1)
 	//);
 	//
-	//auto view = [](const std::string& name, const project_t& p) {
+	//auto view = [](const std::string& name, const projective_t& p) {
 	//	std::cout << name << ": {"
 	//		<< p.x.value.ToString(16) << ", "
 	//		<< p.y.value.ToString(16) << ", "
 	//		<< p.z.value.ToString(16) << "}"
 	//		<< std::endl;
 	//};
-	//auto check = [](const project_t& p) {
+	//auto check = [](const projective_t& p) {
 	//	auto a = p.ToAfinPoint();
 	//	std::cout << "Check: " << std::boolalpha
 	//		<< a.GetParam().CheckPoint(a.x, a.y)

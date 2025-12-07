@@ -67,8 +67,15 @@ struct bigint {
 		using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
 		constexpr count_t totalbytes = WordBytes;
 		const count_t copycount = (arr.size() * sizeof(T) < totalbytes) ? arr.size() : totalbytes / sizeof(T);
-		std::fill(m_words().begin(), m_words().end(), 0);
-		std::memcpy(m_words().data(), arr.data(), copycount * sizeof(T));
+		std::fill(words().begin(), words().end(), 0);
+		auto it = (T*)words().data();
+		auto end = it + copycount;
+		for (auto&& elem : arr) {
+			*it = elem;
+			if (++it == end) {
+				break;
+			}
+		}
 	}
 	constexpr explicit bigint(std::string_view text) {
 		*this = Parse(text);
@@ -538,13 +545,12 @@ struct bigint {
 		
 		return ret;
 	}
-	constexpr std::vector<uint8_t> ToBytes() const {
-		std::vector<uint8_t> ret;
-		if (*this == 0) { ret.resize(1); return ret; }
-		count_t n = this->GetNBit();
-		count_t bytes = n / 8 + 1;
-		ret.resize(bytes);
-		std::memcpy(ret.data(), m_words().data(), bytes);
+	constexpr Cryptgraphy::bytearray ToBytes() const {
+		Cryptgraphy::bytearray ret;
+		ret.reserve(WordBytes);
+		for (size_t i = 0; i < WordBytes; ++i) {
+			ret.push_back(*((Cryptgraphy::byte_t*)words().data() + i));
+		}
 		return ret;
 	}
 	constexpr std::string ToString(int base = 10, bool upper = true, bool padding = false) const {

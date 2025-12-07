@@ -48,9 +48,9 @@ public:
 
 	[[nodiscard]]
 	static Cryptgraphy::bytearray GeneratePublicKey(const baseint_t& D) {
-		auto&& pubpoint = project_t(G).Scaler(xmodp(D));
+		auto&& pubpoint = projective_t(G).Scaler(xmodp(D));
 
-		auto&& x = (baseint_t)pubpoint.ToAffinPoint().x.value;
+		auto&& x = (baseint_t)pubpoint.ToAffin().x.value;
 
 		Cryptgraphy::bytearray ret;
 
@@ -68,13 +68,13 @@ public:
 
 		Packet::LoadBytes(view, temp.words());
 
-		affinpoint_t Q = afinpoint(
+		affin_t Q = affin(
 			xmodp(temp),
 			G.GetParam().GetY(xmodp(temp)).Sqrt()
 		);
 
-		auto&& equalQ = project_t(Q).Scaler(xmodp(D));
-		auto x = (baseint_t)equalQ.ToAffinPoint().x.value;
+		auto&& equalQ = projective_t(Q).Scaler(xmodp(D));
+		auto x = (baseint_t)equalQ.ToAffin().x.value;
 
 		Cryptgraphy::bytearray ret;
 

@@ -200,10 +200,10 @@ struct ECProject {
 	constexpr ECProject(const ECProject&) = default;
 	constexpr ECProject(ECProject&&) = default;
 
-	constexpr ECProject(const ECAffinPoint<T>& from) : ECProject(ECProject::Factory(from.GetParam())(from.x, from.y, from.y)) {
+	constexpr ECProject(const ECAffinPoint<T>& from) : x(from.x), y(from.y), param(&from.GetParam()) {
 		z = 1;
 	}
-	constexpr ECProject(ECAffinPoint<T>&& from) : ECProject(ECProject::Factory(from.GetParam())(std::move(from.x), std::move(from.y), from.y)) {
+	constexpr ECProject(ECAffinPoint<T>&& from) : x(from.x), y(from.y), param(&from.GetParam()) {
 		z = 1;
 	}
 
@@ -224,7 +224,7 @@ struct ECProject {
 	constexpr const WeierstrassParameter<T>& GetParam() const {
 		return *param;
 	}
-	constexpr ECAffinPoint<T> ToAffinPoint() const {
+	constexpr ECAffinPoint<T> ToAffin() const {
 		typename ECAffinPoint<T>::Factory make(GetParam());
 		return make(x / z, y / z);
 	}
