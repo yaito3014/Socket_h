@@ -21,17 +21,17 @@ struct secp256r1 {};
 struct secp384r1 {};
 struct secp521r1 {};
 
-template<class iT>
+template<size_t _words>
 struct secpTraits {
-	using baseint_t		= iT;
-	using int_t			= bigint<baseint_t::Words * 2 + 1>;
+	using baseint_t		= bigint<_words>;
+	using int_t			= bigint<baseint_t::Words * 2>;
 	using modint_t		= ModInt<int_t>;
 	using affin_t		= ECAffin<modint_t>;
 	using projective_t	= ECProject<modint_t>;
 };
 
 template<class secpType>
-struct secpParameters : public secpTraits<bigint<1>> {
+struct secpParameters : public secpTraits<1> {
 	static inline const modint_t::Factory xmodp = "-1";
 	static inline const modint_t N = xmodp("-1");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -47,7 +47,7 @@ struct secpParameters : public secpTraits<bigint<1>> {
 };
 
 template<>
-struct secpParameters<secp112r1> : public secpTraits<bigint<2>> {
+struct secpParameters<secp112r1> : public secpTraits<2> {
 	static inline const modint_t::Factory xmodp = "DB7C2ABF62E35E668076BEAD208B";
 	static inline const modint_t N = xmodp("DB7C2ABF62E35E7628DFAC6561C5");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -63,7 +63,7 @@ struct secpParameters<secp112r1> : public secpTraits<bigint<2>> {
 };
 
 template<>
-struct secpParameters<secp112r2> : public secpTraits<bigint<2>> {
+struct secpParameters<secp112r2> : public secpTraits<2> {
 	static inline const modint_t::Factory xmodp = "DB7C2ABF62E35E668076BEAD208B";
 	static inline const modint_t N = xmodp("36DF0AAFD8B8D7597CA10520D04B");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -79,7 +79,7 @@ struct secpParameters<secp112r2> : public secpTraits<bigint<2>> {
 };
 
 template<>
-struct secpParameters<secp128r1> : public secpTraits<bigint<2>> {
+struct secpParameters<secp128r1> : public secpTraits<2> {
 	static inline const modint_t::Factory xmodp = "FFFFFFFDFFFFFFFFFFFFFFFFFFFFFFFF";
 	static inline const modint_t N = xmodp("FFFFFFFE0000000075A30D1B9038A115");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -95,7 +95,7 @@ struct secpParameters<secp128r1> : public secpTraits<bigint<2>> {
 };
 
 template<>
-struct secpParameters<secp128r2> : public secpTraits<bigint<2>> {
+struct secpParameters<secp128r2> : public secpTraits<2> {
 	static inline const modint_t::Factory xmodp = "FFFFFFFDFFFFFFFFFFFFFFFFFFFFFFFF";
 	static inline const modint_t N = xmodp("3FFFFFFF7FFFFFFFBE0024720613B5A3");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -111,7 +111,7 @@ struct secpParameters<secp128r2> : public secpTraits<bigint<2>> {
 };
 
 template<>
-struct secpParameters<secp160k1> : public secpTraits<bigint<3>> {
+struct secpParameters<secp160k1> : public secpTraits<3> {
 	static inline const modint_t::Factory xmodp = "00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFAC73";
 	static inline const modint_t N = xmodp("0100000000000000000001B8FA16DFAB9ACA16B6B3");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -127,7 +127,7 @@ struct secpParameters<secp160k1> : public secpTraits<bigint<3>> {
 };
 
 template<>
-struct secpParameters<secp160r1> : public secpTraits<bigint<3>> {
+struct secpParameters<secp160r1> : public secpTraits<3> {
 	static inline const modint_t::Factory xmodp = "00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF7FFFFFFF";
 	static inline const modint_t N = xmodp("0100000000000000000001F4C8F927AED3CA752257");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -143,7 +143,7 @@ struct secpParameters<secp160r1> : public secpTraits<bigint<3>> {
 };
 
 template<>
-struct secpParameters<secp160r2> : public secpTraits<bigint<3>> {
+struct secpParameters<secp160r2> : public secpTraits<3> {
 	static inline const modint_t::Factory xmodp = "00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFAC73";
 	static inline const modint_t N = xmodp("0100000000000000000000351EE786A818F3A1A16B");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -159,7 +159,7 @@ struct secpParameters<secp160r2> : public secpTraits<bigint<3>> {
 };
 
 template<>
-struct secpParameters<secp192k1> : public secpTraits<bigint<3>> {
+struct secpParameters<secp192k1> : public secpTraits<3> {
 	static inline const modint_t::Factory xmodp = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFEE37";
 	static inline const modint_t N = xmodp("FFFFFFFFFFFFFFFFFFFFFFFE26F2FC170F69466A74DEFD8D");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -175,7 +175,7 @@ struct secpParameters<secp192k1> : public secpTraits<bigint<3>> {
 };
 
 template<>
-struct secpParameters<secp192r1> : public secpTraits<bigint<3>> {
+struct secpParameters<secp192r1> : public secpTraits<3> {
 	static inline const modint_t::Factory xmodp = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFF";
 	static inline const modint_t N = xmodp("FFFFFFFFFFFFFFFFFFFFFFFF99DEF836146BC9B1B4D22831");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -191,7 +191,7 @@ struct secpParameters<secp192r1> : public secpTraits<bigint<3>> {
 };
 
 template<>
-struct secpParameters<secp224k1> : public secpTraits<bigint<4>> {
+struct secpParameters<secp224k1> : public secpTraits<4> {
 	static inline const modint_t::Factory xmodp = "00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFE56D";
 	static inline const modint_t N = xmodp("010000000000000000000000000001DCE8D2EC6184CAF0A971769FB1F7");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -207,7 +207,7 @@ struct secpParameters<secp224k1> : public secpTraits<bigint<4>> {
 };
 
 template<>
-struct secpParameters<secp224r1> : public secpTraits<bigint<4>> {
+struct secpParameters<secp224r1> : public secpTraits<4> {
 	static inline const modint_t::Factory xmodp = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000001";
 	static inline const modint_t N = xmodp("FFFFFFFFFFFFFFFFFFFFFFFFFFFF16A2E0B8F03E13DD29455C5C2A3D");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -223,7 +223,7 @@ struct secpParameters<secp224r1> : public secpTraits<bigint<4>> {
 };
 
 template<>
-struct secpParameters<secp256k1> : public secpTraits<bigint<4>> {
+struct secpParameters<secp256k1> : public secpTraits<4> {
 	static inline const modint_t::Factory xmodp = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F";
 	static inline const modint_t N = xmodp("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -239,7 +239,7 @@ struct secpParameters<secp256k1> : public secpTraits<bigint<4>> {
 };
 
 template<>
-struct secpParameters<secp256r1> : public secpTraits<bigint<4>> {
+struct secpParameters<secp256r1> : public secpTraits<4> {
 public:
 	static inline const modint_t::Factory xmodp = "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff";
 	static inline const modint_t N = xmodp("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
@@ -256,7 +256,7 @@ public:
 };
 
 template<>
-struct secpParameters<secp384r1> : public secpTraits<bigint<6>> {
+struct secpParameters<secp384r1> : public secpTraits<6> {
 	static inline const modint_t::Factory xmodp = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000FFFFFFFF";
 	static inline const modint_t N = xmodp("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF581A0DB248B0A77AECEC196ACCC52973");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -272,7 +272,7 @@ struct secpParameters<secp384r1> : public secpTraits<bigint<6>> {
 };
 
 template<>
-struct secpParameters<secp521r1> : public secpTraits<bigint<9>> {
+struct secpParameters<secp521r1> : public secpTraits<9> {
 	static inline const modint_t::Factory xmodp = "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
 	static inline const modint_t N = xmodp("01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA51868783BF2F966B7FCC0148F709A5D03BB5C9B8899C47AEBB6FB71E91386409");
 	static inline const auto ECParam = WeierstrassParameter<modint_t>(
@@ -287,30 +287,32 @@ struct secpParameters<secp521r1> : public secpTraits<bigint<9>> {
 	);
 };
 
-template<class Param, class _super = secpParameters<Param>>
-class basic_ECDSA : public _super {
+template<class Param>
+class basic_ECDSA : public secpParameters<Param> {
 public:
 
-	using Super = _super;
+	using Super = secpParameters<Param>;
 
-	using typename Super::baseint_t;
-	using typename Super::int_t;
-	using typename Super::modint_t;
-	using typename Super::affin_t;
-	using typename Super::projective_t;
+	using types = secpTraits<Super::baseint_t::Words>;
+
+	using baseint_t = types::baseint_t;
+	using int_t = types::int_t;
+	using modint_t = types::modint_t;
+	using affin_t = types::affin_t;
+	using projective_t = types::projective_t;
 
 	using bytearray = Cryptgraphy::bytearray;
 
 	static constexpr bytearray(*hasher)(const bytearray&, size_t) = &SHAKE256::HasherN;
 	static inline RandomGenerator rd{};
-	static inline const Super::modint_t::Factory xmodn = Super::N.value;
+	static inline const modint_t::Factory xmodn = Super::N.value;
 
-	static Super::affin_t MakePublicKey(const Super::baseint_t& privateKey) {
-		auto q = Super::projective_t(Super::G).Scaler(xmodn(privateKey)).ToAffin();
+	static affin_t MakePublicKey(const baseint_t& privateKey) {
+		auto q = projective_t(Super::G).Scaler(xmodn(privateKey)).ToAffin();
 		return q;
 	}
 
-	static bytearray Sign(const Super::baseint_t& privateKey, const bytearray& message) {
+	static bytearray Sign(const baseint_t& privateKey, const bytearray& message) {
 		auto h = hasher(privateKey.ToBytes(), 64);
 		auto&& e = xmodn(hasher(message, 32));
 		auto&& sk = bytearray(h.begin() + 32, h.end());
@@ -320,11 +322,11 @@ public:
 
 		auto k = xmodn(hasher(sk, 32));
 		
-		auto&& r = xmodn(typename Super::projective_t(Super::G).Scaler(k).ToAffin().x.value);
+		auto&& r = xmodn(projective_t(Super::G).Scaler(k).ToAffin().x.value);
 		auto s = (e + r * xmodn(privateKey)) / k.value;
 		
-		auto _r = typename Super::baseint_t(r.value).ToBytes();
-		auto _s = typename Super::baseint_t(s.value).ToBytes();
+		auto _r = baseint_t(r.value).ToBytes();
+		auto _s = baseint_t(s.value).ToBytes();
 		
 		bytearray ret;
 		ret.reserve(64);
@@ -334,14 +336,14 @@ public:
 		return ret;
 	}
 
-	static bool Verify(const typename Super::affin_t& q, const bytearray& v, const bytearray& message) {
+	static bool Verify(const affin_t& q, const bytearray& v, const bytearray& message) {
 		auto&& e = xmodn(hasher(message, 32));
 
 		auto&& r = xmodn(bytearray{v.begin(), v.begin() + 32});
 		auto&& s = xmodn(bytearray{v.begin() + 32, v.end()});
 
-		auto u1 = typename Super::projective_t(Super::G).Scaler(xmodn((e / s).value));
-		auto u2 = typename Super::projective_t(q).Scaler(xmodn((r / s).value));
+		auto u1 = projective_t(Super::G).Scaler(xmodn((e / s).value));
+		auto u2 = projective_t(q).Scaler(xmodn((r / s).value));
 
 		auto&& ret = u1.Add(u2).ToAffin().x % Super::N;
 
