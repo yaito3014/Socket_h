@@ -13,7 +13,7 @@ struct ModInt {
 	class Factory {
 	public:
 
-		constexpr Factory(const T& p) : ptr(&p) {}
+		constexpr Factory(const T& p) : ptr(new T(p)) {}
 		
 		constexpr Factory(T&& p) { ptr = new T(std::move(p)); }
 
