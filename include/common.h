@@ -16,10 +16,7 @@
 #include <string_view>
 #include <vector>
 
-namespace SocketUtil {
-
-	template<class T>
-	concept enum32_t = std::is_enum_v<T> && (sizeof(T) == sizeof(uint32_t));
+namespace SocketDetail {
 
 	using byte_t = uint8_t;
 	using byte_view = std::span<const byte_t>;
@@ -27,5 +24,25 @@ namespace SocketUtil {
 
 	using bytearray = std::vector<byte_t>;
 
-	
+	template<class T>
+	concept enum32 = std::is_enum_v<T> && (sizeof(T) == sizeof(uint32_t));
+
+	template<class T>
+	concept memcpyable = std::is_trivially_copyable_v<T>;
+
+	template<class T>
+	concept to_byteable = requires(const T& x) {
+		{ x.ToBytes() } -> std::convertible_to<bytearray>;
+	};
+
+	template<class T>
+	concept from_byteable = requires(T& x) {
+		{ x.FromBytes(byte_view()) } -> std::convertible_to<byte_view>;
+	};
+
+	template<class T>
+	concept cross_convertible = to_byteable<T> && from_byteable<T>;
+
+
+
 }

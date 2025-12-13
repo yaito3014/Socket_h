@@ -126,24 +126,24 @@ int main(int argc, char* argv[]) {
 	//}
 	//std::cout << std::endl;
 
-	KeyManager key;
-	std::string message = "I have skill is write low level programing language.";
-
-	auto q = ECDSA::MakePublicKey(key.GetSecretKey());
-
-	auto v = ECDSA::Sign(key.GetSecretKey(), {message.begin(), message.end()});
-
-	bool ret = ECDSA::Verify(q, v, {message.begin(), message.end()});
-
-	std::cout << "message: \"" << message << "\"" << std::endl;
-	std::cout << "Q: {" << q.x.value.ToString(16) << ", " << q.y.value.ToString(16) << "}" << std::endl;
-	std::cout << "(r, s)(bytes): ";
-	for (auto&& b : v) {
-		std::cout << std::hex << std::setw(2) << std::setfill('0') << std::right << (int)b;
-	}
-	std::cout << std::endl;
-
-	std::cout << std::boolalpha << ret;
+	//KeyManager key;
+	//std::string message = "I have skill is write low level programing language.";
+	//
+	//auto q = ECDSA::MakePublicKey(key.GetSecretKey());
+	//
+	//auto v = ECDSA::Sign(key.GetSecretKey(), {message.begin(), message.end()});
+	//
+	//bool ret = ECDSA::Verify(q, v, {message.begin(), message.end()});
+	//
+	//std::cout << "message: \"" << message << "\"" << std::endl;
+	//std::cout << "Q: {" << q.x.value.ToString(16) << ", " << q.y.value.ToString(16) << "}" << std::endl;
+	//std::cout << "(r, s)(bytes): ";
+	//for (auto&& b : v) {
+	//	std::cout << std::hex << std::setw(2) << std::setfill('0') << std::right << (int)b;
+	//}
+	//std::cout << std::endl;
+	//
+	//std::cout << std::boolalpha << ret;
 
 	//std::string message = "0123456789abcdef";
 	//Cryptgraphy::bytearray data{message.begin(), message.end()};
@@ -208,19 +208,19 @@ int main(int argc, char* argv[]) {
 
 	// arg[1]{ 0 = server, 1 = client }
 
-	//std::vector<std::string> args;
-	//args.insert(args.end(), argv, argv + argc);
-	//
-	//if (args.size() <= 1) {
-	//	return -1;
-	//}
-	//
-	//if (std::stoi(args[1]) == 0) {
-	//	Server();
-	//}
-	//else {
-	//	Client();
-	//}
+	std::vector<std::string> args;
+	args.insert(args.end(), argv, argv + argc);
+	
+	if (args.size() <= 1) {
+		return -1;
+	}
+	
+	if (std::stoi(args[1]) == 0) {
+		Server();
+	}
+	else {
+		Client();
+	}
 	
 	return 0;
 }

@@ -8,18 +8,18 @@
 struct Header {
 
 	Header() {}
-	template<SocketUtil::enum32_t T>
+	template<SocketDetail::enum32 T>
 	explicit Header(T _enum) : Header(static_cast<uint32_t>(_enum)) {}
 	explicit Header(uint32_t datatype) {
 		Type = datatype;
 	}
 
-	template<SocketUtil::enum32_t T>
+	template<SocketDetail::enum32 T>
 	T TypeAs() const {
 		return static_cast<T>(Type);
 	}
 
-	template<SocketUtil::enum32_t T>
+	template<SocketDetail::enum32 T>
 	bool Is(T type) const {
 		return static_cast<T>(Type) == type;
 	}
@@ -50,7 +50,7 @@ struct Header {
 	template <typename T>
 	static constexpr std::uint32_t type_hash_code() {
 		constexpr auto name = type_name<T>();
-		// Fowler–Noll–Vo hash (FNV-1a) for deterministic results
+		// Fowler–Noll–Vo id (FNV-1a) for deterministic results
 		std::uint32_t hash = 2166136261U;
 		for (char c : name) {
 			hash = (hash ^ static_cast<unsigned char>(c)) * 16777619U;
@@ -60,6 +60,30 @@ struct Header {
 
 	uint32_t Size{};
 	uint32_t Type{};
+
+	template<typename T>
+	static uint32_t type_id() {
+		static constexpr std::string_view name = type_name<T>();
+		static std::unordered_map<std::string_view, uint32_t> idstorage{};
+		static uint32_t newid = 0;
+		static std::mutex mtx;
+
+		std::lock_guard<std::mutex> lock(mtx);
+
+		uint32_t ret = 0;
+
+		auto it = idstorage.find(name);
+		if (it == idstorage.end()) {
+			ret = newid;
+			idstorage[name] = newid;
+			++newid;
+		}
+		else {
+			ret = it->second;
+		}
+
+		return ret;
+	}
 
 };
 
@@ -71,38 +95,28 @@ struct Packet {
 
 	static constexpr size_t HeaderSize = sizeof(Header);
 
-	using byte_t = uint8_t;
-	using bytearray = std::vector<byte_t>;
+	using byte_t = SocketDetail::byte_t;
+	using bytearray = SocketDetail::bytearray;
+
+	using byte_view = SocketDetail::byte_view;
+	using byte_ref = SocketDetail::byte_ref;
 
 	using byte_iterator_t = decltype(std::declval<const bytearray>().end());
+
+	template<class T>
+	static constexpr bool is_enum32 = SocketDetail::enum32<T>;
+
+	template<class T>
+	static constexpr bool memcpyable = SocketDetail::memcpyable<T>;
 	
-	using byte_view = std::span<const byte_t>;
-	using mut_byte_view = std::span<byte_t>;
-
-	template<class T, class dummyT = std::nullptr_t>
-	using to_byteable_d = std::enable_if_t<std::is_same<decltype(std::declval<const T>().ToBytes()), bytearray>::value, dummyT>;
 	template<class T>
-	using to_byteable = to_byteable_d<T, T>;
+	static constexpr bool to_byteable = SocketDetail::to_byteable<T>;
 	
-	template<class T, class dummyT = std::nullptr_t>
-	using from_byteable_d = std::enable_if_t<std::is_same<decltype(std::declval<T>().FromBytes(std::declval<byte_view>())), byte_view>::value, dummyT>;
 	template<class T>
-	using from_byteable = from_byteable_d<T, T>;
+	static constexpr bool from_byteable = SocketDetail::from_byteable<T>;
 
 	template<class T>
-	using cross_convertible_d = from_byteable_d<to_byteable<T>>;
-	template<class T>
-	using cross_convertable = from_byteable<to_byteable<T>>;
-
-	template<class, class = void>
-	struct is_cross_convertable : std::false_type {};
-	template<class T>
-	struct is_cross_convertable<T, std::void_t<cross_convertible_d<T>>> : std::true_type {};
-
-	template<class T, class dummyT = std::nullptr_t>
-	using memcpy_able_d = std::enable_if_t<std::is_trivially_copyable_v<T> && !is_cross_convertable<T>::value, dummyT>;
-	template<class T>
-	using memcpy_able = memcpy_able_d<T, T>;
+	static constexpr bool cross_convertible = SocketDetail::cross_convertible<T>;
 
 	Packet(const Packet&) = default;
 	Packet(Packet&&) = default;
@@ -116,59 +130,58 @@ struct Packet {
 	Packet& operator=(const bytearray&) = delete;
 	Packet& operator=(bytearray&&) = delete;
 
-	Packet(uint32_t hash, const void* src, uint32_t size) {
-		Header head(hash);
+	Packet(uint32_t id, const void* src, uint32_t size) {
+		Header head(id);
 		head.Size = size;
 		m_buffer.resize(HeaderSize + head.Size);
 		std::memcpy(m_buffer.data(), std::addressof(head), HeaderSize);
 		std::memcpy(m_buffer.data() + HeaderSize, src, head.Size);
 	}
-
-	template<SocketUtil::enum32_t enumT>
-	Packet(enumT datatype, const void* src, uint32_t size) : Packet(static_cast<uint32_t>(datatype), src, size) {}
+	template<class enumT>
+	Packet(enumT datatype, const void* src, uint32_t size) requires (is_enum32<enumT>) : Packet(static_cast<uint32_t>(datatype), src, size) {}
 
 	Packet(uint32_t id, const bytearray& data) : Packet(id, data.data(), data.size()) {}
-	template<SocketUtil::enum32_t enumT>
-	Packet(enumT type, const bytearray& data) : Packet(type, data.data(), data.size()) {}
+	template<class enumT>
+	Packet(enumT type, const bytearray& data) requires (is_enum32<enumT>) : Packet(type, data.data(), data.size()) {}
 	
 	template<size_t len>
 	Packet(size_t id, const char(&data)[len]) : Packet(id, std::addressof(data), len - 1) {}
-	template<SocketUtil::enum32_t enumT, size_t len>
-	Packet(enumT type, const char(&data)[len]) : Packet(static_cast<uint32_t>(type), std::addressof(data), len - 1) {}
+	template<class enumT, size_t len>
+	Packet(enumT type, const char(&data)[len]) requires (is_enum32<enumT>) : Packet(static_cast<uint32_t>(type), std::addressof(data), len - 1) {}
 	template<size_t len>
 	Packet(const char(&data)[len]) : Packet(Header::type_hash_code<std::string>(), std::addressof(data), len - 1) {}
 
 	Packet(uint32_t id, const std::string& data) : Packet(id, data.data(), data.size()) {}
-	template<SocketUtil::enum32_t enumT>
-	Packet(enumT type, const std::string& data) : Packet(type, data.data(), data.size()) {}
+	template<class enumT>
+	Packet(enumT type, const std::string& data) requires (is_enum32<enumT>) : Packet(type, data.data(), data.size()) {}
 	Packet(const std::string& data) : Packet(Header::type_hash_code<std::string>(), data.data(), data.size()) {}
 	
 	template<class T>
-	Packet(uint32_t id, const T& data, memcpy_able_d<T> dummy_0 = {}) : Packet(id, std::addressof(data), sizeof(T)) {}
-	template<SocketUtil::enum32_t enumT, class T>
-	Packet(enumT type, const T& data, memcpy_able_d<T> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), std::addressof(data), sizeof(T)) {}
+	Packet(uint32_t id, const T& data) requires (memcpyable<T> && !cross_convertible<T>) : Packet(id, std::addressof(data), sizeof(T)) {}
+	template<class enumT, class T>
+	Packet(enumT type, const T& data) requires (is_enum32<enumT> && memcpyable<T> && !cross_convertible<T>) : Packet(static_cast<uint32_t>(type), std::addressof(data), sizeof(T)) {}
 	template<class T>
-	Packet(const T& data, memcpy_able_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<T>(), std::addressof(data), sizeof(T)) {}
+	Packet(const T& data) requires (memcpyable<T> && !cross_convertible<T>) : Packet(Header::type_hash_code<T>(), std::addressof(data), sizeof(T)) {}
 
 	template<class T>
-	Packet(uint32_t id, const std::vector<T>& data, memcpy_able_d<T> dummy_0 = {}) : Packet(id, data.data(), data.size() * sizeof(T)) {}
-	template<SocketUtil::enum32_t enumT, class T>
-	Packet(enumT type, const std::vector<T>& data, memcpy_able_d<T> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), data.data(), data.size() * sizeof(T)) {}
+	Packet(uint32_t id, const std::vector<T>& data) requires (memcpyable<T> && !cross_convertible<T>) : Packet(id, data.data(), data.size() * sizeof(T)) {}
+	template<class enumT, class T>
+	Packet(enumT type, const std::vector<T>& data) requires (is_enum32<enumT> && memcpyable<T> && !cross_convertible<T>) : Packet(static_cast<uint32_t>(type), data.data(), data.size() * sizeof(T)) {}
 	template<class T>
-	Packet(const std::vector<T>& data, memcpy_able_d<T> dummy_0) : Packet(Header::type_hash_code<std::vector<T>>(), data.data(), data.size() * sizeof(T)) {}
+	Packet(const std::vector<T>& data) requires (memcpyable<T> && !cross_convertible<T>) : Packet(Header::type_hash_code<std::vector<T>>(), data.data(), data.size() * sizeof(T)) {}
 
 	template<class T>
-	Packet(uint32_t id, const T& data, cross_convertible_d<T> dummy_0 = {}) {
+	Packet(uint32_t id, const T& data) requires (cross_convertible<T>) {
 		bytearray _data = Convert<T>(data);
 		*this = Packet(id, _data.data(), _data.size());
 	}
-	template<SocketUtil::enum32_t enumT, class T>
-	Packet(enumT type, const T& data, cross_convertible_d<T> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), data) {}
+	template<class enumT, class T>
+	Packet(enumT type, const T& data) requires (is_enum32<enumT> && cross_convertible<T>) : Packet(static_cast<uint32_t>(type), data) {}
 	template<class T>
-	Packet(const T& data, cross_convertible_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<T>(), data) {}
+	Packet(const T& data) requires (cross_convertible<T>) : Packet(Header::type_hash_code<T>(), data) {}
 
 	template<class T>
-	Packet(uint32_t id, const std::vector<T>& data, cross_convertible_d<T> dummy_0 = {}) {
+	Packet(uint32_t id, const std::vector<T>& data) requires (cross_convertible<T>) {
 		bytearray b;
 		b.reserve(data.size() * sizeof(T));
 		for (auto&& elem : data) {
@@ -177,10 +190,10 @@ struct Packet {
 		}
 		*this = Packet(id, b.data(), b.size());
 	}
-	template<SocketUtil::enum32_t enumT, class T>
-	Packet(enumT type, const std::vector<T>& data, cross_convertible_d<T> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), data) {}
+	template<class enumT, class T>
+	Packet(enumT type, const std::vector<T>& data) requires (is_enum32<T> && cross_convertible<T>) : Packet(static_cast<uint32_t>(type), data) {}
 	template<class T>
-	Packet(const std::vector<T>& data, cross_convertible_d<T> dummy_0 = {}) : Packet(Header::type_hash_code<std::vector<T>>(), data) {}
+	Packet(const std::vector<T>& data) requires (cross_convertible<T>) : Packet(Header::type_hash_code<std::vector<T>>(), data) {}
 
 	Packet(uint32_t id, std::ifstream& ifs) {
 
@@ -195,8 +208,8 @@ struct Packet {
 
 		*this = Packet(id, data);
 	}
-	template<SocketUtil::enum32_t enumT>
-	Packet(enumT type, std::ifstream& ifs) : Packet(static_cast<uint32_t>(type), ifs) {}
+	template<class enumT>
+	Packet(enumT type, std::ifstream& ifs) requires (is_enum32<enumT>) : Packet(static_cast<uint32_t>(type), ifs) {}
 	explicit Packet(std::ifstream& ifs) : Packet(Header::type_hash_code<FILE>(), ifs) {}
 
 	/*
@@ -226,7 +239,7 @@ struct Packet {
 		*this = Packet(id, data);
 	}
 	template<class enumT>
-	explicit Packet(enumT type, const std::filesystem::path& path, Header::enum32_t<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), path) {}
+	explicit Packet(enumT type, const std::filesystem::path& path, Header::enum32<enumT> dummy_0 = {}) : Packet(static_cast<uint32_t>(type), path) {}
 	explicit Packet(const std::filesystem::path& path) : Packet(Header::type_hash_code<FILE>(), path) {}
 	
 	*/
@@ -249,7 +262,7 @@ struct Packet {
 	}
 
 	template<class T>
-	std::optional<memcpy_able<T>> Get() const {
+	std::optional<T> Get() const requires (memcpyable<T> && !from_byteable<T>) {
 		if (CheckHeader(sizeof(T))) {
 			return std::nullopt;
 		}
@@ -259,7 +272,7 @@ struct Packet {
 	}
 
 	template<class T>
-	std::optional<from_byteable<T>> Get() const {
+	std::optional<T> Get() const requires (from_byteable<T>) {
 		if (CheckHeader()) {
 			return std::nullopt;
 		}
@@ -268,7 +281,7 @@ struct Packet {
 	}
 	
 	template<class T>
-	std::optional<std::enable_if_t<std::is_same<T, std::string>::value, std::string>> Get() const {
+	std::optional<T> Get() const requires (std::same_as<T, std::string>) {
 		if (CheckHeader()) {
 			return std::nullopt;
 		}
@@ -279,7 +292,7 @@ struct Packet {
 	}
 
 	template<class T>
-	std::optional<std::vector<memcpy_able<T>>> GetArray() const {
+	std::optional<std::vector<T>> GetArray() const requires (memcpyable<T> && !from_byteable<T>){
 		if (CheckHeader()) {
 			return std::nullopt;
 		}
@@ -290,7 +303,7 @@ struct Packet {
 	}
 
 	template<class T>
-	std::optional<std::vector<from_byteable<T>>> GetArray() const {
+	std::optional<std::vector<T>> GetArray() const requires (from_byteable<T>) {
 		if (CheckHeader()) {
 			return std::nullopt;
 		}
@@ -305,12 +318,12 @@ struct Packet {
 	}
 
 	template<class T>
-	static bytearray Convert(const to_byteable<T> &from) {
+	static bytearray Convert(const T &from) requires (to_byteable<T>) {
 		return from.ToBytes();
 	}
 
 	template<class T>
-	static std::pair<from_byteable<T>, byte_view> Convert(byte_view from) {
+	static std::pair<T, byte_view> Convert(byte_view from) requires (from_byteable<T>) {
 		T ret;
 		byte_view view = ret.FromBytes(from);
 		return {ret, view};
@@ -325,34 +338,22 @@ struct Packet {
 	}
 
 	template<class T>
-	static void StoreBytes(bytearray& dest, const T& src, memcpy_able_d<T> dummy_0 = {}) {
+	static void StoreBytes(bytearray& dest, const T& src) requires (memcpyable<T> && !cross_convertible<T>) {
 		StoreBytes(dest, &src, sizeof(T));
 	}
 	template<class T>
-	static void LoadBytes(byte_view& view, T& dest, memcpy_able_d<T> dummy_0 = {}) {
+	static void LoadBytes(byte_view& view, T& dest) requires (memcpyable<T> && !cross_convertible<T>) {
 		LoadBytes(view, &dest, sizeof(T));
 	}
 
 	template<class T>
-	static void StoreBytes(bytearray& dest, const T& src, cross_convertible_d<T> dummy_0 = {}) {
-		bytearray data = Convert<T>(src);
-		StoreBytes(dest, data.data(), data.size());
-	}
-	template<class T>
-	static void LoadBytes(byte_view& view, T& dest, cross_convertible_d<T> dummy_0 = {}) {
-		auto&& [ret, last] = Convert<T>(view);
-		dest = std::move(ret);
-		view = last;
-	}
-
-	template<class T>
-	static void StoreBytes(bytearray& dest, const std::vector<T>& src, memcpy_able_d<T> dummy_0 = {}) {
+	static void StoreBytes(bytearray& dest, const std::vector<T>& src) requires (memcpyable<T> && !cross_convertible<T>) {
 		uint32_t size = src.size();
 		StoreBytes(dest, size);
 		StoreBytes(dest, src.data(), sizeof(T) * size);
 	}
 	template<class T>
-	static void LoadBytes(byte_view& view, std::vector<T>& dest, memcpy_able_d<T> dummy_0 = {}) {
+	static void LoadBytes(byte_view& view, std::vector<T>& dest) requires (memcpyable<T> && !cross_convertible<T>) {
 		uint32_t size = 0;
 		LoadBytes(view, size);
 		dest.resize(size);
@@ -360,7 +361,19 @@ struct Packet {
 	}
 
 	template<class T>
-	static void StoreBytes(bytearray& dest, const std::vector<T>& src, cross_convertible_d<T> dummy_0 = {}) {
+	static void StoreBytes(bytearray& dest, const T& src) requires (cross_convertible<T>) {
+		bytearray data = Convert<T>(src);
+		StoreBytes(dest, data.data(), data.size());
+	}
+	template<class T>
+	static void LoadBytes(byte_view& view, T& dest) requires (cross_convertible<T>) {
+		auto&& [ret, last] = Convert<T>(view);
+		dest = std::move(ret);
+		view = last;
+	}
+
+	template<class T>
+	static void StoreBytes(bytearray& dest, const std::vector<T>& src) requires (cross_convertible<T>) {
 		uint32_t size = src.size();
 		StoreBytes(dest, size);
 		for (auto&& elem : src) {
@@ -369,7 +382,7 @@ struct Packet {
 		}
 	}
 	template<class T>
-	static void LoadBytes(byte_view& view, std::vector<T>& dest, cross_convertible_d<T> dummy_0 = {}) {
+	static void LoadBytes(byte_view& view, std::vector<T>& dest) requires (cross_convertible<T>) {
 		uint32_t size = 0;
 		LoadBytes(view, size);
 		dest.clear();
@@ -381,26 +394,30 @@ struct Packet {
 		}
 	}
 
-	static void StoreBytes(bytearray& dest, const std::string& src) {
+	template<class T>
+	static void StoreBytes(bytearray& dest, const T& src) requires (std::same_as<T, std::string>) {
 		uint32_t size = src.size();
 		StoreBytes(dest, size);
 		StoreBytes(dest, src.data(), src.size());
 	}
-	static void LoadBytes(byte_view& view, std::string& dest) {
+	template<class T>
+	static void LoadBytes(byte_view& view, T& dest) requires (std::same_as<T, std::string>) {
 		uint32_t size = 0;
 		LoadBytes(view, size);
 		dest.resize(size);
 		LoadBytes(view, dest.data(), size);
 	}
 
-	static void StoreBytes(bytearray& dest, const std::vector<std::string>& src) {
+	template<class T>
+	static void StoreBytes(bytearray& dest, const std::vector<T>& src) requires (std::same_as<T, std::string>) {
 		uint32_t size = src.size();
 		StoreBytes(dest, size);
 		for (auto&& elem : src) {
 			StoreBytes(dest, elem);
 		}
 	}
-	static void LoadBytes(byte_view& view, std::vector<std::string>& dest) {
+	template<class T>
+	static void LoadBytes(byte_view& view, std::vector<T>& dest) requires (std::same_as<T, std::string>) {
 		uint32_t size = 0;
 		LoadBytes(view, size);
 		dest.clear();
