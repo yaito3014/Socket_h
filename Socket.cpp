@@ -21,18 +21,13 @@ struct ClientData {
 	Packet::bytearray ToBytes() const {
 		Packet::bytearray ret;
 		Packet::StoreBytes(ret, Level);
-		uint32_t len = Name.size();
-		Packet::StoreBytes(ret, len);
-		Packet::StoreBytes(ret, Name.data(), len);
+		Packet::StoreBytes(ret, Name);
 		return ret;
 	}
 	
 	Packet::byte_view FromBytes(Packet::byte_view view) {
 		Packet::LoadBytes(view, Level);
-		uint32_t len = 0;
-		Packet::LoadBytes(view, len);
-		Name.resize(len);
-		Packet::LoadBytes(view, Name.data(), len);
+		Packet::LoadBytes(view, Name);
 		return view;
 	}
 };
@@ -43,28 +38,12 @@ struct ContainerInContainer {
 
 	Packet::bytearray ToBytes() const {
 		Packet::bytearray ret;
-		uint32_t size = names.size();
-		Packet::StoreBytes(ret, size);
-		for (auto&& elem : names) {
-			uint32_t len = elem.size();
-			Packet::StoreBytes(ret, len);
-			Packet::StoreBytes(ret, elem.data(), len);
-		}
+		Packet::StoreBytes(ret, names);
 		return ret;
 	}
 
 	Packet::byte_view FromBytes(Packet::byte_view view) {
-		uint32_t size = 0;
-		Packet::LoadBytes(view, size);
-		names.reserve(size);
-		for (size_t i = 0; i < size; ++i) {
-			uint32_t len = 0;
-			Packet::LoadBytes(view, len);
-			std::string elem;
-			elem.resize(len);
-			Packet::LoadBytes(view, elem.data(), len);
-			names.push_back(std::move(elem));
-		}
+		Packet::LoadBytes(view, names);
 		return view;
 	}
 };
@@ -74,23 +53,12 @@ struct ContainerInVariable {
 
 	Packet::bytearray ToBytes() const {
 		Packet::bytearray ret;
-		uint32_t size = container.size();
-		Packet::StoreBytes(ret, size);
-		for (auto&& elem : container) {
-			Packet::StoreBytes(ret, elem);
-		}
+		Packet::StoreBytes(ret, container);
 		return ret;
 	}
 
 	Packet::byte_view FromBytes(Packet::byte_view view) {
-		uint32_t size = 0;
-		Packet::LoadBytes(view, size);
-		container.reserve(size);
-		for (size_t i = 0; i < size; ++i) {
-			ContainerInContainer elem;
-			Packet::LoadBytes(view, elem);
-			container.push_back(std::move(elem));
-		}
+		Packet::LoadBytes(view, container);
 		return view;
 	}
 };
