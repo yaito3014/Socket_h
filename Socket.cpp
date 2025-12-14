@@ -63,52 +63,52 @@ struct ContainerInVariable {
 
 int main(int argc, char* argv[]) {
 	
-	KeyManager Keya;
-	KeyManager Keyb;
-	
-	auto tp = std::chrono::high_resolution_clock::now();
-	
-	auto kE = Keya.MakeQKey();
-	auto kF = Keyb.MakeQKey();
-	
-	auto Ga = Keya.MakeSharedKey(kF);
-	auto Gb = Keyb.MakeSharedKey(kE);
-	
-	auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - tp).count();
-	
-	bool same = Ga == Gb;
-	
-	std::cout << (double)ns / 1000 / 1000 / 1000 << "s" << std::endl;
-	std::cout << std::boolalpha << "shared key same: " << same << std::endl;
-	
-	for (auto&& b : Ga) {
-		std::cout << std::hex << std::setw(2) << std::setfill('0') << std::right << (int)b;
-	}
-	std::cout << std::endl;
-	
-	for (auto&& b : Gb) {
-		std::cout << std::hex << std::setw(2) << std::setfill('0') << std::right << (int)b;
-	}
-	std::cout << std::endl;
-
-	//KeyManager key;
-	//std::string message = "I have skill is write low level programing language.";
+	//KeyManager Keya;
+	//KeyManager Keyb;
 	//
-	//auto q = ECDSA::MakePublicKey(key.GetSecretKey());
+	//auto tp = std::chrono::high_resolution_clock::now();
 	//
-	//auto v = ECDSA::Sign(key.GetSecretKey(), {message.begin(), message.end()});
+	//auto kE = Keya.MakeQKey();
+	//auto kF = Keyb.MakeQKey();
 	//
-	//bool ret = ECDSA::Verify(q, v, {message.begin(), message.end()});
+	//auto Ga = Keya.MakeSharedKey(kF);
+	//auto Gb = Keyb.MakeSharedKey(kE);
 	//
-	//std::cout << "message: \"" << message << "\"" << std::endl;
-	//std::cout << "Q: {" << q.x.value.ToString(16) << ", " << q.y.value.ToString(16) << "}" << std::endl;
-	//std::cout << "(r, s)(bytes): ";
-	//for (auto&& b : v) {
+	//auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - tp).count();
+	//
+	//bool same = Ga == Gb;
+	//
+	//std::cout << (double)ns / 1000 / 1000 / 1000 << "s" << std::endl;
+	//std::cout << std::boolalpha << "shared key same: " << same << std::endl;
+	//
+	//for (auto&& b : Ga) {
 	//	std::cout << std::hex << std::setw(2) << std::setfill('0') << std::right << (int)b;
 	//}
 	//std::cout << std::endl;
 	//
-	//std::cout << std::boolalpha << ret;
+	//for (auto&& b : Gb) {
+	//	std::cout << std::hex << std::setw(2) << std::setfill('0') << std::right << (int)b;
+	//}
+	//std::cout << std::endl;
+
+	KeyManager key;
+	std::string message = "I have skill is write low level programing language.";
+	
+	auto q = ECDSA::MakePublicKey(key.GetSecretKey());
+	
+	auto v = ECDSA::Sign(key.GetSecretKey(), {message.begin(), message.end()});
+	
+	bool ret = ECDSA::Verify(q, v, {message.begin(), message.end()});
+	
+	std::cout << "message: \"" << message << "\"" << std::endl;
+	std::cout << "Q: {" << q.x.value.ToString(16) << ", " << q.y.value.ToString(16) << "}" << std::endl;
+	std::cout << "(r, s)(bytes): ";
+	for (auto&& b : v) {
+		std::cout << std::hex << std::setw(2) << std::setfill('0') << std::right << (int)b;
+	}
+	std::cout << std::endl;
+	
+	std::cout << std::boolalpha << ret;
 
 	//std::string message = "0123456789abcdef";
 	//Cryptgraphy::bytearray data{message.begin(), message.end()};
@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
 
 	//using int_t = bigint<8>;
 	//using modint_t = ModInt<int_t>;
-	//using projective_t = ECProject<modint_t>;
+	//using projective_t = ECProjective<modint_t>;
 	//
 	//modint_t::Factory xmodp = "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff";
 	//projective_t::Factory projective = WeierstrassParameter<modint_t>(

@@ -43,9 +43,10 @@ public:
 	}
 
 	static Cryptgraphy::bytearray MakeSharedKey(const baseint_t& D, const Cryptgraphy::bytearray& fromQ) {
-		affin_t Q = Super::affin(
+		auto Q = Super::projective(
 			Super::xmodp(fromQ),
-			Super::G.GetParam().GetY(Super::xmodp(fromQ)).Sqrt()
+			Super::projective.Param().GetY(Super::xmodp(fromQ)).Sqrt(),
+			Super::xmodp(1)
 		);
 
 		auto&& equalQ = projective_t(Q).Scaler(Super::xmodp(D) % Super::N);

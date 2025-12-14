@@ -27,7 +27,7 @@ struct secpTraits {
 	using int_t			= bigint<baseint_t::Words * 2>;
 	using modint_t		= ModInt<int_t>;
 	using affin_t		= ECAffin<modint_t>;
-	using projective_t	= ECProject<modint_t>;
+	using projective_t	= ECProjective<modint_t>;
 };
 
 template<class secpType>

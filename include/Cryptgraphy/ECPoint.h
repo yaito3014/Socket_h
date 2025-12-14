@@ -31,14 +31,16 @@ template<IntegralSet T>
 struct ECAffin {
 
 	using param_t = WeierstrassParameter<T>;
+	using ptr_t = std::shared_ptr<const param_t>;
 
-	constexpr ECAffin(const param_t* p) : x{}, y{}, param(p) {}
+	explicit constexpr ECAffin(ptr_t p) : x{}, y{}, param(p) {}
 
 	class Factory {
 	public:
 
-		constexpr Factory(const param_t& p) : ptr(new param_t(p)) {}
+		explicit constexpr Factory(ptr_t p) : ptr(p) {}
 		
+		constexpr Factory(const param_t& p) : ptr(new param_t(p)) {}
 		constexpr Factory(param_t&& p) : ptr(new param_t(std::move(p))) {}
 
 		constexpr ECAffin operator()() const {
@@ -78,7 +80,7 @@ struct ECAffin {
 
 	private:
 
-		const param_t* ptr;
+		ptr_t ptr;
 	};
 
 	constexpr ECAffin(const ECAffin&) = default;
@@ -90,41 +92,50 @@ struct ECAffin {
 	T x;
 	T y;
 
+	constexpr bool IsInf() const {
+		return x == (int)0 && y == (int)0;
+	}
+
 	constexpr const param_t& GetParam() const {
 		return *param;
 	}
+	constexpr ptr_t GetParamPtr() const {
+		return param;
+	}
 
 	constexpr ECAffin Double() const {
-		Factory make(GetParam());
+		Factory make(param);
+		
+		if (IsInf()) { return make(); }
+
 		auto temp = (3 * (x * x) + GetParam().a) / (2 * y);
 		auto _x = (temp * temp) - (2 * x);
 		auto xtemp = x - _x;
+		
 		return make(_x, (temp * xtemp) - y);
 	}
 	constexpr ECAffin Add(const ECAffin& other) const {
-		Factory make(GetParam());
+		Factory make(param);
+		
 		if (*this == other) { return Double(); }
+		if (IsInf()) { return other; }
+		else if (other.IsInf()) { return *this; }
+		
 		auto temp = (other.y - y) / (other.x - x);
 		auto _x = (temp * temp) - x - other.x;
 		auto xtemp = x - _x;
+		
 		return make(_x, (temp * xtemp) - y);
 	}
 	constexpr ECAffin Scaler(T s) const {
-		Factory make(GetParam());
+		Factory make(param);
 
-		bool first = true;
-		ECAffin ret = make();
-		ECAffin base = *this;
+		auto ret = make();
+		auto base = *this;
 
 		do {
 			if ((s & 1) == (int)1) {
-				if (first) {
-					ret = base;
-					first = false;
-				}
-				else {
-					ret = ret.Add(base);
-				}
+				ret = ret.Add(base);
 			}
 			base = base.Double();
 		} while ((s >>= 1) != (int)0);
@@ -140,25 +151,26 @@ struct ECAffin {
 	}
 
 private:
-	const param_t* param;
+	ptr_t param;
 };
 
 template<IntegralSet T>
-struct ECProject {
+struct ECProjective {
 
 	using param_t = WeierstrassParameter<T>;
+	using ptr_t = std::shared_ptr<const param_t>;
 
-	constexpr ECProject(const param_t* p) : param(p) {}
+	explicit constexpr ECProjective(ptr_t p) : x{}, y{}, z{}, param(p) {}
 
 	class Factory {
 	public:
-		constexpr Factory(const param_t& p) : ptr(new param_t(p)) {}
+		explicit constexpr Factory(ptr_t p) : ptr(p) {}
 		
+		constexpr Factory(const param_t& p) : ptr(new param_t(p)) {}
 		constexpr Factory(param_t&& p) : ptr(new param_t(std::move(p))) {}
 
-
-		constexpr ECProject operator()() const {
-			return ECProject(ptr);
+		constexpr ECProjective operator()() const {
+			return ECProjective(ptr);
 		}
 		template<class Tx, class Ty, class Tz>
 			requires (
@@ -166,8 +178,8 @@ struct ECProject {
 				std::convertible_to<Ty, T> &&
 				std::convertible_to<Tz, T>
 			)
-		constexpr ECProject operator()(Tx&& x, Ty&& y, Tz&& z) const {
-			ECProject point(ptr);
+		constexpr ECProjective operator()(Tx&& x, Ty&& y, Tz&& z) const {
+			ECProjective point(ptr);
 			point.x = std::forward<Tx>(x);
 			point.y = std::forward<Ty>(y);
 			point.z = std::forward<Tz>(z);
@@ -183,8 +195,8 @@ struct ECProject {
 				std::constructible_from<T, yArgs...> &&
 				std::constructible_from<T, zArgs...>
 			)
-		constexpr ECProject Make(std::tuple<xArgs&&...> xargs, std::tuple<yArgs&&...> yargs, std::tuple<zArgs&&...> zargs) const {
-			ECProject point(ptr);
+		constexpr ECProjective Make(std::tuple<xArgs&&...> xargs, std::tuple<yArgs&&...> yargs, std::tuple<zArgs&&...> zargs) const {
+			ECProjective point(ptr);
 			auto xctor = [&](xArgs... _xargs) -> T { return T(std::forward<xArgs>(_xargs)...); };
 			auto yctor = [&](yArgs... _yargs) -> T { return T(std::forward<yArgs>(_yargs)...); };
 			auto zctor = [&](zArgs... _zargs) -> T { return T(std::forward<zArgs>(_zargs)...); };
@@ -200,75 +212,88 @@ struct ECProject {
 
 	private:
 
-		const param_t* ptr;
+		ptr_t ptr;
 	};
 
-	constexpr ECProject(const ECProject&) = default;
-	constexpr ECProject(ECProject&&) = default;
+	constexpr ECProjective(const ECProjective&) = default;
+	constexpr ECProjective(ECProjective&&) = default;
 
-	constexpr ECProject(const ECAffin<T>& from) : x(from.x), y(from.y), param(&from.GetParam()) {
-		z = 1;
+	constexpr ECProjective(const ECAffin<T>& from) : x(from.x), y(from.y), param(from.GetParamPtr()) {
+		z = x / x;
 	}
-	constexpr ECProject(ECAffin<T>&& from) : x(from.x), y(from.y), param(&from.GetParam()) {
-		z = 1;
+	constexpr ECProjective(ECAffin<T>&& from) : x(from.x), y(from.y), param(from.GetParamPtr()) {
+		z = x / x;
 	}
 
-	constexpr ECProject& operator=(const ECProject&) = default;
-	constexpr ECProject& operator=(ECProject&&) = default;
+	constexpr ECProjective& operator=(const ECProjective&) = default;
+	constexpr ECProjective& operator=(ECProjective&&) = default;
 
-	constexpr ECProject& operator=(const ECAffin<T>& from) {
-		return *this = ECProject(from);
+	constexpr ECProjective& operator=(const ECAffin<T>& from) {
+		return *this = ECProjective(from);
 	}
-	constexpr ECProject& operator=(ECAffin<T>&& from) {
-		return *this = ECProject(std::move(from));
+	constexpr ECProjective& operator=(ECAffin<T>&& from) {
+		return *this = ECProjective(std::move(from));
 	}
 
 	T x;
 	T y;
 	T z;
 
+	constexpr bool IsInf() const {
+		return x == (int)0 && y == (int)0 && z == (int)0;
+	}
+
 	constexpr const param_t& GetParam() const {
 		return *param;
 	}
+	constexpr ptr_t GetParamPtr() const {
+		return param;
+	}
 	constexpr ECAffin<T> ToAffin() const {
-		typename ECAffin<T>::Factory make(GetParam());
+		typename ECAffin<T>::Factory make(param);
 		return make(x / z, y / z);
 	}
 
-	constexpr ECProject Double() const {
-		Factory make(GetParam());
+	constexpr ECProjective Double() const {
+		Factory make(param);
+
+		if (IsInf()) {
+			return make();
+		}
 
 		auto x_sq = x * x;
 		auto y_sq = y * y;
 		auto z_sq = z * z;
 
-		auto w = GetParam().a * z_sq + x_sq * 3;
+		auto w = GetParam().a * z_sq + 3 * x_sq;
 		auto s = y * z;
 		auto B = x * y * s;
-		auto h = w * w - B * 8;
+		auto h = w * w - 8 * B;
 		auto sp2 = s * s;
 		auto sp3 = sp2 * s;
 
 		return make(
-			h * s * 2,
-			w * (4 * B - h) - y_sq * sp2 * 8,
-			sp3 * 8
+			2 * h * s,
+			w * (4 * B - h) - 8 * y_sq * sp2,
+			8 * sp3
 		);
 	}
 
-	constexpr ECProject Add(const ECProject& from) const {
-		Factory make(GetParam());
+	constexpr ECProjective Add(const ECProjective& other) const {
+		Factory make(param);
 
-		if (*this == from) { return Double(); }
+		if (*this == other) { return Double(); }
+		if (IsInf()) { return other; }
+		else if (other.IsInf()) { return *this; }
 
-		auto u1 = from.y * z;
-		auto u2 = y * from.z;
-		auto v1 = from.x * z;
-		auto v2 = x * from.z;
+		auto u1 = other.y * z;
+		auto u2 = y * other.z;
+		auto v1 = other.x * z;
+		auto v2 = x * other.z;
 
 		auto u = u1 - u2;
 		auto v = v1 - v2;
-		auto w = z * from.z;
+		auto w = z * other.z;
 
 		auto vp2 = v * v;
 		auto vp3 = vp2 * v;
@@ -282,59 +307,52 @@ struct ECProject {
 		);
 	}
 
-	constexpr ECProject Scaler(T s) const {
-		Factory make(GetParam());
+	constexpr ECProjective Scaler(T s) const {
+		Factory make(param);
 
-		bool first = true;
-		ECProject base = *this;
-		ECProject ret = base;
+		auto ret = make();
+		auto base = *this;
 
-		size_t nbit = 0;
-		auto t = s;
-		while (t != (int)0) {
-			++nbit;
-			t >>= 1;
-		}
-		
-		if (nbit == 0) {
-			return make();
-		}
-		
-		t = s / s;
-		t <<= nbit - 2;
-		
-		for (size_t i = 1; i < nbit; ++i) {
-			ret = ret.Double();
-			if ((s & t) != (int)0) {
+		//size_t nbit = 0;
+		//auto t = s;
+		//while (t != (int)0) {
+		//	++nbit;
+		//	t >>= 1;
+		//}
+		//
+		//if (nbit == 0) {
+		//	return make();
+		//}
+		//
+		//t = s / s;
+		//t <<= nbit - 2;
+		//
+		//for (size_t i = 1; i < nbit; ++i) {
+		//	ret = ret.Double();
+		//	if ((s & t) != (int)0) {
+		//		ret = ret.Add(base);
+		//	}
+		//	t >>= 1;
+		//}
+
+		while (s != (int)0) {
+			if ((s & 1) == (int)1) {
 				ret = ret.Add(base);
 			}
-			t >>= 1;
+			base = base.Double();
+			s >>= 1;
 		}
-
-		//do {
-		//	if ((s & 1) == (int)1) {
-		//		if (first) {
-		//			ret = base;
-		//			first = false;
-		//		}
-		//		else {
-		//			ret = ret.Add(base);
-		//		}
-		//		//printf("x=%s, y=%s, z=%s\n", ret.x.value.ToString(16).c_str(), ret.y.value.ToString(16).c_str(), ret.z.value.ToString(16).c_str());
-		//	}
-		//	base = base.Double();
-		//} while ((s >>= 1) != (int)0);
 
 		return ret;
 	}
 
-	constexpr friend bool operator==(const ECProject& lhs, const ECProject& rhs) {
+	constexpr friend bool operator==(const ECProjective& lhs, const ECProjective& rhs) {
 		return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
 	}
-	constexpr friend bool operator!=(const ECProject& lhs, const ECProject& rhs) {
+	constexpr friend bool operator!=(const ECProjective& lhs, const ECProjective& rhs) {
 		return !(lhs == rhs);
 	}
 
 private:
-	const param_t* param;
+	ptr_t param;
 };
