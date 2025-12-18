@@ -62,20 +62,11 @@ struct bigint {
 		}
 		*this = bigint(ret);
 	}
-	template<std::ranges::contiguous_range R>
+	template<std::ranges::range R>
 	constexpr bigint(const R& arr) {
-		using T = std::remove_cvref_t<std::ranges::range_value_t<R>>;
-		constexpr count_t totalbytes = WordBytes;
-		const count_t copycount = (arr.size() * sizeof(T) < totalbytes) ? arr.size() : totalbytes / sizeof(T);
-		std::fill(words().begin(), words().end(), 0);
-		auto it = std::bit_cast<T*>(words().data()); // TODO: resolve potential undefined behavior
-		auto end = it + copycount;
-		for (auto&& elem : arr) {
-			*it = elem;
-			if (++it == end) {
-				break;
-			}
-		}
+		words() = constexpr_bytes_cast<arr_t>(
+			constexpr_bytes_cast<R>(arr)
+		);
 	}
 	constexpr explicit bigint(std::string_view text) {
 		*this = Parse(text);
@@ -634,12 +625,10 @@ struct bigint {
 	constexpr arr_t& words() { return *m_words; }
 	constexpr const arr_t& words() const { return *m_words; }
 	constexpr bits_t& bits() {
-		return *std::bit_cast<bits_t*>(m_words->data());  // TODO: resolve potential undefined behavior
-		// NOTE: temporary fix
+		return *reinterpret_cast<bits_t*>(m_words->data());  // TODO: resolve potential undefined behavior
 	}
 	constexpr const bits_t& bits() const {
-		return *std::bit_cast<const bits_t*>(m_words->data());  // TODO: resolve potential undefined behavior
-		// NOTE: temporary fix
+		return *reinterpret_cast<const bits_t*>(m_words->data());  // TODO: resolve potential undefined behavior
 	}
 
 private:
